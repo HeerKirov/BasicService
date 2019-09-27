@@ -1,0 +1,19 @@
+[package]
+name = "basic_service"
+version = "0.1.0"
+authors = ["Heer Kirov <HeerKirov@outlook.com>"]
+edition = "2018"
+
+[features]
+default = ["postgres/with-chrono"]
+
+[dependencies]
+actix-web = "1.0"
+r2d2 = "0.8.5"
+postgres = "0.15"
+chrono = "0.4"
+rust-crypto = "0.2.36"
+serde = "1.0.101"
+lazy_static = "1.2.0"
+log = "0.4.8"
+env_logger = "0.7.0"

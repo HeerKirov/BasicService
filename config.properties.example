@@ -1,0 +1,14 @@
+web.prefix=
+web.port=7999
+
+secret.key=cXdlMnF3ZTIxd2UyMWUycXdlMnF3ZTIxd2UyMWUy
+
+db.host=localhost
+db.port=5432
+db.name=basic_service
+db.username=username
+db.password=password
+
+build.admin.username=admin
+build.admin.password=admin
+build.admin.name=Administrator
