@@ -41,16 +41,39 @@ create table if not exists service_token(
   update_time timestamp with time zone not null
 );
 create index if not exists service_token_key_index on service_token (key);
+create index if not exists service_token_user_id_index on service_token (user_id);
 
 create table if not exists service_app(
   id serial not null constraint service_app_pkey primary key,
-  user_id integer not null constraint service_app_user_id_key references service_user on update cascade on delete cascade deferrable initially deferred,
-  application_name varchar(32) not null,
+  name varchar(32) unique not null,
+  description varchar(256) not null,
+  secret varchar(128) not null,
 
-  create_time timestamp with time zone not null
+  public boolean not null default true,
+  enable boolean not null default true,
+  delete boolean not null default false,
+
+  create_time timestamp with time zone not null,
+  update_time timestamp with time zone not null
 );
+create index if not exists service_app_name_index on service_app (name);
+
+create table if not exists service_app_use(
+  id serial not null constraint service_app_use_pkey primary key,
+  user_id integer not null constraint service_app_use_user_id_key references service_user on update cascade on delete cascade deferrable initially deferred,
+  app_id integer not null constraint service_app_use_app_id_key references service_app on update cascade on delete cascade deferrable initially deferred,
+
+  last_use timestamp with time zone null,
+
+  create_time timestamp with time zone not null,
+  update_time timestamp with time zone not null
+);
+create index if not exists service_app_use_user_id_index on service_app_use (user_id);
+create index if not exists service_app_use_app_id_index on service_app_use (app_id);
 
 create table if not exists service_global_setting(
   id serial not null constraint service_global_setting_pkey primary key,
-  register_mode integer not null
+  register_mode varchar(8) not null,
+  effective_max bigint null,
+  effective_default bigint not null
 );

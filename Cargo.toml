@@ -11,9 +11,11 @@ default = ["postgres/with-chrono"]
 actix-web = "1.0"
 r2d2 = "0.8.5"
 postgres = "0.15"
-chrono = "0.4"
+postgres-shared = "0.4.2"
+chrono = {version = "0.4", features = ["serde"]}
 rust-crypto = "0.2.36"
-serde = "1.0.101"
+serde = "1.0"
 lazy_static = "1.2.0"
 log = "0.4.8"
 env_logger = "0.7.0"
+uuid = {version = "0.7", features = ["v4"]}

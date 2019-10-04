@@ -21,7 +21,7 @@ cargo build
 
 2. 创建postgres数据库，并使用`migration`文件夹下的SQL文件初始化数据库结构。
 
-3. 运行`cargo run build-datasource`，将必须的基本数据写入到数据库。
+3. 运行`cargo run initialize-datasource`，将必备的基本数据写入到数据库。
 
 ### Run
 ```bash

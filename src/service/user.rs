@@ -1,14 +1,48 @@
-use postgres::transaction::{Transaction};
-use postgres::{Error};
-use chrono::prelude::{Utc};
+use postgres::transaction::Transaction;
+use postgres::Error;
+use chrono::prelude::Utc;
 use crypto::hmac::Hmac;
 use crypto::mac::Mac;
 use crypto::sha1::Sha1;
-use super::super::model::user::{CreatePath};
+use super::super::model::user::{CreatePath, ViewUser};
 use super::super::util::config::*;
 
-pub fn user_exists(t: &Transaction, username: &String) -> bool {
-    t.query("SELECT username FROM service_user WHERE username = $1", &[username]).unwrap().len() > 0
+pub enum LoginError {
+    PasswordWrong,
+    UserNotExist,
+    UserNotEnabled
+}
+
+pub fn user_exists(t: &Transaction, username: &String) -> Result<bool, Error> {
+    match t.query("SELECT username FROM service_user WHERE username = $1", &[username]) {
+        Ok(rows) => Ok(rows.len() > 0),
+        Err(e) => Err(e)
+    }
+}
+
+pub fn user_get(t: &Transaction, user_id: i32) -> Result<Option<ViewUser>, Error> {
+    match t.query("SELECT id, username, name, cover, is_staff, last_login, last_login_ip, create_time, create_path FROM service_user 
+        WHERE NOT deleted AND enable AND id = $1 LIMIT 1", &[&user_id]) {
+            Ok(rows) => if rows.len() > 0 {
+                Ok(Some(ViewUser {
+                    id: rows.get(0).get("id"),
+                    username: rows.get(0).get("username"),
+                    name: rows.get(0).get("name"),
+                    cover: rows.get(0).get("cover"),
+                    is_staff: rows.get(0).get("is_staff"),
+                    last_login: rows.get(0).get("last_login"),
+                    last_login_ip: rows.get(0).get("last_login_ip"),
+                    create_time: rows.get(0).get("create_time"),
+                    create_path: {
+                        let create_path: String = rows.get(0).get("create_path");
+                        CreatePath::from(&create_path).unwrap()
+                    }
+                }))
+        }else{
+            Ok(None)
+        },
+        Err(e) => Err(e)
+    }
 }
 
 pub fn user_create(t: &Transaction, username: &String, password: &String, name: &String, is_staff: bool, create_path: CreatePath) -> Result<(), Error> {
@@ -21,6 +55,24 @@ pub fn user_create(t: &Transaction, username: &String, password: &String, name: 
     }
 }
 
+pub fn user_authenticate(t: &Transaction, username: &String, password: &String) -> Result<i32, LoginError> {
+    let rows = t.query("SELECT id, password, enable FROM service_user WHERE username = $1 AND NOT deleted LIMIT 1", 
+        &[username]).unwrap();
+    if rows.len() == 0 {
+        return Err(LoginError::UserNotExist)
+    }
+    let enable: bool = rows.get(0).get("enable");
+    if !enable {
+        return Err(LoginError::UserNotEnabled)
+    }
+    let db_password: String = rows.get(0).get("password");
+    if db_password != password_encrypt(&password) {
+        return Err(LoginError::PasswordWrong)
+    }
+    let id: i32 = rows.get(0).get("id");
+    Ok(id)
+}
+
 pub fn password_encrypt(password: &str) -> String {
     let config = get_config();
     let mut hmac = Hmac::new(Sha1::new(), config.get(SECRET_KEY).as_bytes());
@@ -31,4 +83,14 @@ pub fn password_encrypt(password: &str) -> String {
         ret += &format!("{:02x}", b);
     }
     ret.to_string()
+}
+
+impl LoginError {
+    pub fn to_info(&self) -> String {
+        match self {
+            Self::PasswordWrong => "Password wrong",
+            Self::UserNotExist => "User not exist",
+            Self::UserNotEnabled => "User not enabled"
+        }.to_string()
+    }
 }

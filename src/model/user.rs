@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use chrono::prelude::{DateTime, Utc};
 
 #[derive(Serialize, Deserialize)]
 pub enum CreatePath {
@@ -7,6 +8,49 @@ pub enum CreatePath {
     Public,     //在开放注册时注册
     Admin       //由系统管理员在后台创建
 }
+
+pub struct User {
+    pub id: i32,
+    pub username: String,
+    pub password: String,
+    pub name: String,
+    pub cover: Option<String>,
+    pub is_staff: bool,      //此用户拥有管理certificatin service system的权限
+
+    pub last_login: Option<DateTime<Utc>>,
+    pub last_login_ip: Option<String>,
+
+    pub create_time: DateTime<Utc>,
+    pub create_path: CreatePath,
+
+    pub enable: bool,
+    pub deleted: bool
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RegisterUser {
+    pub username: String,
+    pub password: String,
+    pub name: String,
+
+    pub key: Option<String>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ViewUser {
+    pub id: i32,
+    pub username: String,
+    pub name: String,
+    pub cover: Option<String>,
+    pub is_staff: bool,
+
+    pub last_login: Option<DateTime<Utc>>,
+    pub last_login_ip: Option<String>,
+
+    pub create_time: DateTime<Utc>,
+    pub create_path: CreatePath
+}
+
 impl CreatePath {
     pub fn to_string(&self) -> String {
         match self {
@@ -25,46 +69,4 @@ impl CreatePath {
             _ => None
         }
     }
-}
-
-pub struct User {
-    pub id: i64,
-    pub username: String,
-    pub password: String,
-    pub name: String,
-    pub cover: String,
-    pub is_staff: bool,      //此用户拥有管理certificatin service system的权限
-
-    pub last_login: i64,
-    pub last_login_ip: String,
-
-    pub create_time: i64,
-    pub create_path: CreatePath,
-
-    pub enable: bool,
-    pub deleted: bool
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RegisterUser {
-    pub username: String,
-    pub password: String,
-    pub name: String,
-
-    pub key: Option<String>
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ViewUser {
-    pub id: i64,
-    pub username: String,
-    pub name: String,
-    pub cover: String,
-    pub is_staff: bool,
-
-    pub last_login: i64,
-    pub last_login_ip: String,
-
-    pub create_time: i64,
-    pub create_path: CreatePath
 }

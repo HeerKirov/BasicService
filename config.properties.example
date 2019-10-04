@@ -12,3 +12,6 @@ db.password=password
 build.admin.username=admin
 build.admin.password=admin
 build.admin.name=Administrator
+build.setting.register.mode=Code
+build.setting.token.effective.max=
+build.setting.token.effective.default=86400000

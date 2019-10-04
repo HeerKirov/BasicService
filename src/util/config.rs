@@ -14,6 +14,9 @@ pub const DB_PASSWORD: &'static str = "db.password";
 pub const BUILD_ADMIN_USERNAME: &'static str = "build.admin.username";
 pub const BUILD_ADMIN_PASSWORD: &'static str = "build.admin.password";
 pub const BUILD_ADMIN_NAME: &'static str = "build.admin.name";
+pub const BUILD_SETTING_REGISTER_MODE: &'static str = "build.setting.register.mode";
+pub const BUILD_SETTING_EFFECTIVE_MAX: &'static str = "build.setting.token.effective.max";
+pub const BUILD_SETTING_EFFECTIVE_DEFAULT: &'static str = "build.setting.token.effective.default";
 
 lazy_static! {
     static ref FILEPATH: Mutex<String> = Mutex::new("config.properties".to_string());

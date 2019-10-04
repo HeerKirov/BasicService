@@ -39,11 +39,11 @@ impl Parameters {
             params: params
         }
     }
-    pub fn side(&self, execution: fn(&Parameters)) -> &Self {
+    pub fn side<F>(&self, execution: F) -> &Self where F: Fn(&Parameters) {
         execution(self);
         self
     }
-    pub fn execute(&self, execution: fn(&str, &Parameters)) {
+    pub fn execute<F>(&self, execution: F) where F: Fn(&str, &Parameters) {
         if self.commands.len() > 0 {
             let command = self.commands.get(0).unwrap();
             let parameters = Parameters {

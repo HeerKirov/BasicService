@@ -2,8 +2,6 @@ use log::*;
 use r2d2::{Pool, ManageConnection, PooledConnection};
 use postgres::{Connection, Error, TlsMode};
 use super::util::config::*;
-use super::service::user::{user_exists, user_create};
-use super::model::user::CreatePath::*;
 
 lazy_static! {
     static ref POOL: Pool<Manager> = create_pool();
@@ -28,29 +26,6 @@ fn create_pool() -> Pool<Manager> {
     debug!("Create database pool");
     
     pool
-}
-
-pub fn build_datasource() {
-    let config = get_config();
-
-    let conn = &*get_connection();
-    let trans = conn.transaction().unwrap();
-    info!("initialize database...");
-    //create admin user
-    let username = config.get(BUILD_ADMIN_USERNAME);
-    let password = config.get(BUILD_ADMIN_PASSWORD);
-    let name = config.get(BUILD_ADMIN_NAME);
-    if !user_exists(&trans, &username) {
-        if let Err(e) = user_create(&trans, &username, &password, &name, true, System) {
-            error!("User create failed: {}", e);
-        }
-    }else{
-        warn!("user {} is already exists.", username);
-    }
-    //create global setting
-
-    trans.commit().unwrap();
-    info!("Done.")
 }
 
 pub fn get_connection() -> PooledConnection<Manager> {

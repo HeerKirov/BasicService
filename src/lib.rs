@@ -8,3 +8,4 @@ pub mod server;
 pub mod model;
 pub mod db;
 pub mod service;
+pub mod task;
