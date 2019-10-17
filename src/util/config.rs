@@ -4,7 +4,7 @@ use std::fs;
 use log::{debug};
 
 pub const SECRET_KEY: &'static str = "secret.key";
-pub const WEB_PREFIX: &'static str = "web.prefix";
+pub const WEB_API_PREFIX: &'static str = "web.api.prefix";
 pub const WEB_PORT: &'static str = "web.port";
 pub const DB_HOST: &'static str = "db.host";
 pub const DB_PORT: &'static str = "db.port";
@@ -17,6 +17,8 @@ pub const BUILD_ADMIN_NAME: &'static str = "build.admin.name";
 pub const BUILD_SETTING_REGISTER_MODE: &'static str = "build.setting.register.mode";
 pub const BUILD_SETTING_EFFECTIVE_MAX: &'static str = "build.setting.token.effective.max";
 pub const BUILD_SETTING_EFFECTIVE_DEFAULT: &'static str = "build.setting.token.effective.default";
+pub const STATIC_COVER_PREFIX: &'static str = "static.cover.prefix";
+pub const STATIC_COVER_DIRECTORY: &'static str = "static.cover.directory";
 
 lazy_static! {
     static ref FILEPATH: Mutex<String> = Mutex::new("config.properties".to_string());

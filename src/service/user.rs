@@ -1,10 +1,11 @@
 use postgres::transaction::Transaction;
 use postgres::Error;
+use chrono::Duration;
 use chrono::prelude::Utc;
 use crypto::hmac::Hmac;
 use crypto::mac::Mac;
 use crypto::sha1::Sha1;
-use super::super::model::user::{CreatePath, ViewUser};
+use super::super::model::user::{CreatePath, ViewUser, UpdateUser};
 use super::super::util::config::*;
 
 pub enum LoginError {
@@ -52,6 +53,49 @@ pub fn user_create(t: &Transaction, username: &String, password: &String, name: 
         &[username, &password_encrypt(password), name, &is_staff, &Utc::now(), &create_path.to_string()]) {
             Ok(_) => Ok(()),
             Err(e) => Err(e)
+    }
+}
+
+pub fn user_update(t: &Transaction, user_id: i32, body: &UpdateUser) -> Result<(), Error> {
+    match t.execute("UPDATE service_user SET name = $2 WHERE id = $1", &[&user_id, &body.name]) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e)
+    }
+}
+
+pub fn user_set_password(t: &Transaction, user_id: i32, old_password: &String, new_password: &String) -> Result<bool, Error> {
+    let rows = match t.query("SELECT password FROM service_user WHERE id = $1 AND enable AND NOT deleted LIMIT 1", &[&user_id]) {
+        Ok(rows) => rows,
+        Err(e) => return Err(e)
+    };
+    if rows.len() == 0 {
+        return Ok(false)
+    }
+    let db_password: String = rows.get(0).get("password");
+    if db_password != password_encrypt(&old_password) {
+        return Ok(false)
+    }
+    match t.execute("UPDATE service_user SET password = $2 WHERE id = $1", &[&user_id, &password_encrypt(new_password)]) {
+        Ok(_) => Ok(true),
+        Err(e) => Err(e)
+    }
+}
+
+pub fn user_set_cover(t: &Transaction, user_id: i32, cover: &String) -> Result<(), Error> {
+    match t.execute("UPDATE service_user SET cover = $2 WHERE id = $1", &[&user_id, cover]) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e)
+    }
+}
+
+pub fn user_update_last_login(t: &Transaction, user_id: i32, ip: &Option<String>) -> Result<bool, Error> {
+    let now = Utc::now();
+    match t.execute("UPDATE service_user
+            SET last_login = $1, last_login_ip = $2
+            WHERE id = $3 AND (last_login IS NULL OR $4 >= last_login)", 
+            &[&now, ip, &user_id, &(now - Duration::minutes(1))]) {
+        Err(e) => Err(e),
+        Ok(size) => Ok(size > 0)
     }
 }
 

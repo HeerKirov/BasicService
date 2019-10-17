@@ -1,18 +1,23 @@
+use log::error;
 use std::error::Error;
-use actix_web::{web, Scope, HttpResponse};
+use actix_web::{web, Scope, HttpRequest, HttpResponse};
 use super::super::model::token::*;
-use super::super::service::user::user_authenticate;
+use super::super::service::user::{user_authenticate, user_update_last_login};
 use super::super::service::token::{token_create, token_get, token_update};
 use super::super::service::global_setting::setting_get;
-use super::super::service::transaction;
+use super::super::service::transaction_res;
+use super::get_request_ip;
 
-fn create(body: web::Json<CreateToken>) -> HttpResponse {
-    transaction(|trans| {
+fn create(body: web::Json<CreateToken>, req: HttpRequest) -> HttpResponse {
+    transaction_res(|trans| {
         match user_authenticate(&trans, &body.username, &body.password) {
             Ok(user_id) => {
                 let setting = setting_get(&trans).unwrap();
                 match token_create(&trans, user_id, calculate_effective(body.effective, body.effective_unlimit, setting.effective_max, setting.effective_default)) {
-                    Ok(token) => HttpResponse::Created().json(token),
+                    Ok(token) => {
+                        if let Err(e) = user_update_last_login(&trans, user_id, &get_request_ip(&req)) { error!("update user last login message failed. {}", e) }
+                        HttpResponse::Created().json(token)
+                    },
                     Err(e) => HttpResponse::InternalServerError().body(e.description().to_string())
                 }
             },
@@ -21,25 +26,19 @@ fn create(body: web::Json<CreateToken>) -> HttpResponse {
     })
 }
 fn retrieve(token: web::Path<String>) -> HttpResponse {
-    transaction(|trans| {
+    transaction_res(|trans| {
         match token_get(&trans, &token) {
-            Ok(token_model) => if let Some(token_model) = token_model {
-                HttpResponse::Ok().json(token_model)
-            }else{
-                HttpResponse::NotFound().finish()
-            },
+            Ok(Some(token_model)) => HttpResponse::Ok().json(token_model),
+            Ok(None) => HttpResponse::NotFound().finish(),
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string())
         }
     })
 }
 fn update(token: web::Path<String>, body: web::Json<UpdateToken>) -> HttpResponse {
-    transaction(|trans| {
+    transaction_res(|trans| {
         match token_update(&trans, &token, body.effective) {
-            Ok(token_model) => if let Some(token_model) = token_model {
-                HttpResponse::Ok().json(token_model)
-            }else{
-                HttpResponse::NotFound().finish()
-            },
+            Ok(Some(token_model)) => HttpResponse::Ok().json(token_model),
+            Ok(None) => HttpResponse::NotFound().finish(),
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string())
         }
     })

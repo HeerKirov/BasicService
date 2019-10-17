@@ -1,5 +1,5 @@
-web.prefix=
 web.port=7999
+web.api.prefix=/api
 
 secret.key=cXdlMnF3ZTIxd2UyMWUycXdlMnF3ZTIxd2UyMWUy
 
@@ -15,3 +15,6 @@ build.admin.name=Administrator
 build.setting.register.mode=Code
 build.setting.token.effective.max=
 build.setting.token.effective.default=86400000
+
+static.cover.prefix=/static/cover
+static.cover.directory=./cover-upload

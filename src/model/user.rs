@@ -15,7 +15,7 @@ pub struct User {
     pub password: String,
     pub name: String,
     pub cover: Option<String>,
-    pub is_staff: bool,      //此用户拥有管理certificatin service system的权限
+    pub is_staff: bool,      //此用户拥有管理basic service system的权限
 
     pub last_login: Option<DateTime<Utc>>,
     pub last_login_ip: Option<String>,
@@ -27,16 +27,16 @@ pub struct User {
     pub deleted: bool
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct RegisterUser {
     pub username: String,
     pub password: String,
     pub name: String,
 
-    pub key: Option<String>
+    pub code: Option<String>
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct ViewUser {
     pub id: i32,
     pub username: String,
@@ -49,6 +49,22 @@ pub struct ViewUser {
 
     pub create_time: DateTime<Utc>,
     pub create_path: CreatePath
+}
+
+#[derive(Serialize)]
+pub struct ViewCover {
+    pub cover: String
+}
+
+#[derive(Deserialize)]
+pub struct UpdateUser {
+    pub name: String
+}
+
+#[derive(Deserialize)]
+pub struct UpdatePassword {
+    pub old_password: String,
+    pub new_password: String
 }
 
 impl CreatePath {

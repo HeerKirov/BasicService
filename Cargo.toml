@@ -5,17 +5,18 @@ authors = ["Heer Kirov <HeerKirov@outlook.com>"]
 edition = "2018"
 
 [features]
-default = ["postgres/with-chrono"]
+default = ["postgres/with-chrono"]  # 启用日期类型对psql引擎的类型转换支持
 
 [dependencies]
-actix-web = "1.0"
-r2d2 = "0.8.5"
-postgres = "0.15"
-postgres-shared = "0.4.2"
-chrono = {version = "0.4", features = ["serde"]}
-rust-crypto = "0.2.36"
-serde = "1.0"
-lazy_static = "1.2.0"
-log = "0.4.8"
-env_logger = "0.7.0"
-uuid = {version = "0.7", features = ["v4"]}
+actix-web = "1.0.8"         # web框架
+actix-files = "0.1.6"       # web框架进行静态文件解析
+r2d2 = "0.8.5"              # 数据库连接池
+postgres = "0.15"           # psql数据库引擎
+rust-crypto = "0.2.36"      # 加密工具包，用于提供密码的hmac加密
+serde = "1.0"               # 序列化和反序列化工具
+lazy_static = "1.2.0"       # 可变全局变量
+chrono = {version = "0.4", features = ["serde"]}    # 日期和时间工具
+uuid = {version = "0.7", features = ["v4"]}         # UUID工具
+futures = "0.1.27"          # 异步工具，用于处理文件流
+log = "0.4.8"               # 日志框架
+env_logger = "0.7.0"        # 日志实现

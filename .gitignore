@@ -5,6 +5,7 @@ Desktop.ini
 
 /target
 **/*.rs.bk
+cover-upload
 Cargo.lock
 
 *.properties
