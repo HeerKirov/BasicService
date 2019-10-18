@@ -17,8 +17,8 @@ pub fn initialize_datasource() {
         let username = config.get(BUILD_ADMIN_USERNAME);
         let password = config.get(BUILD_ADMIN_PASSWORD);
         let name = config.get(BUILD_ADMIN_NAME);
-        if !user_exists(&trans, &username).unwrap() {
-            if let Err(e) = user_create(&trans, &username, &password, &name, true, CreatePath::System) {
+        if !user_exists(trans, &username).unwrap() {
+            if let Err(e) = user_create(trans, &username, &password, &name, true, CreatePath::System) {
                 error!("User creating failed: {}", e);
             }
         }else{
@@ -35,7 +35,7 @@ pub fn initialize_datasource() {
                 None
             }
         };
-        if let Err(e) = setting_create(&trans, register_mode, effective_max, effective_default) {
+        if let Err(e) = setting_create(trans, register_mode, effective_max, effective_default) {
             error!("Global setting create failed: {}", e);
         }
     });
@@ -46,7 +46,7 @@ pub fn initialize_datasource() {
 pub fn clean_expired_token() {
     info!("Clean expired token...");
     transaction(|trans| {
-        match token_clean_expired(&trans) {
+        match token_clean_expired(trans) {
             Ok(size) => info!("{} record(s) is deleted.", size),
             Err(e) => error!("Token cleaning failed: {}", e)
         }

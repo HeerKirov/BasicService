@@ -9,7 +9,7 @@ pub fn token_create(t: &Transaction, user_id: i32, effective: Option<i64>) -> Re
     let now = Utc::now();
     let token = RetrieveToken {
         key: uuid_create(user_id, now.timestamp_millis()),
-        user_id: user_id,
+        user_id,
         expire_time: if let Some(effective) = effective {
             Some(now + Duration::milliseconds(effective))
         }else{
@@ -41,9 +41,9 @@ pub fn token_get(t: &Transaction, token_key: &String) -> Result<Option<RetrieveT
                         }
                     }else{
                         Ok(Some(RetrieveToken {
-                            key: key,
+                            key,
                             user_id: rows.get(0).get("user_id"),
-                            expire_time: expire_time,
+                            expire_time,
                             create_time: rows.get(0).get("create_time"),
                             update_time: rows.get(0).get("update_time")
                         }))
@@ -86,11 +86,16 @@ pub fn token_clean_expired(t: &Transaction) -> Result<u64, Error> {
 pub fn token_clean_all(t: &Transaction, username: String) -> Result<u64, Error> {
     match t.query("SELECT id FROM service_user WHERE username = $1 LIMIT 1", &[&username]) {
         Err(e) => Err(e),
-        Ok(rows) => {
-            let user_id: i32 = rows.get(0).get("id");
-            t.execute("DELETE FROM service_token WHERE user_id = $1", &[&user_id])
+        Ok(rows) => if rows.len() > 0 {
+            token_clean_all_by_id(t, rows.get(0).get("id"))
+        }else{
+            Ok(0)
         }
     }
+}
+
+pub fn token_clean_all_by_id(t: &Transaction, user_id: i32) -> Result<u64, Error> {
+    t.execute("DELETE FROM service_token WHERE user_id = $1", &[&user_id])
 }
 
 fn uuid_create(user_id: i32, create_time: i64) -> String {

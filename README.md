@@ -10,10 +10,13 @@
 
 ## How to use
 
-### Build
+### Setup
+#### 1. 编译程序
 ```bash
-cargo build
+cargo build --release
 ```
+#### 2. 依赖工具
+`convert`: 程序的运行依赖于ImageMagick的`convert`CLI工具。在运行程序之前，需要准备好该工具，并使其处于运行用户可访问的状态。
 
 ### Initialize
 1. 创建配置文件`config.properties`并编写配置。  
@@ -21,7 +24,11 @@ cargo build
 
 2. 创建postgres数据库，并使用`migration`文件夹下的SQL文件初始化数据库结构。
 
-3. 运行`cargo run initialize-datasource`，将必备的基本数据写入到数据库。
+3. 运行
+    ```bash
+    cargo run initialize-datasource
+    ```
+    将必备的基本数据写入到数据库。
 
 ### Run
 ```bash

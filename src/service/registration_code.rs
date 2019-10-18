@@ -7,8 +7,7 @@ use super::super::model::registration_code::{ViewRegistrationCode, CreateRegistr
 pub fn code_list(t: &Transaction) -> Result<Vec<ViewRegistrationCode>, Error> {
     match t.query("SELECT * FROM service_registration_code ORDER BY id DESC", &[]) {
         Err(e) => Err(e),
-        Ok(rows) => {
-            let v: Vec<ViewRegistrationCode> = rows.iter().map(|row|ViewRegistrationCode{
+        Ok(rows) => Ok(rows.iter().map(|row|ViewRegistrationCode{
                 id: row.get("id"),
                 code: row.get("code"),
                 enable: row.get("enable"),
@@ -16,9 +15,7 @@ pub fn code_list(t: &Transaction) -> Result<Vec<ViewRegistrationCode>, Error> {
                 used_time: row.get("used_time"),
                 used_user: row.get("used_user"),
                 create_time: row.get("create_time")
-            }).collect();
-            Ok(v)
-        }
+        }).collect())
     }
 }
 

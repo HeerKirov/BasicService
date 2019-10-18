@@ -67,6 +67,41 @@ pub struct UpdatePassword {
     pub new_password: String
 }
 
+#[derive(Serialize)]
+pub struct ViewManageUser {
+    pub id: i32,
+    pub username: String,
+    pub name: String,
+    pub cover: Option<String>,
+    pub is_staff: bool,
+
+    pub last_login: Option<DateTime<Utc>>,
+    pub last_login_ip: Option<String>,
+
+    pub create_time: DateTime<Utc>,
+    pub create_path: CreatePath,
+
+    pub enable: bool
+}
+
+#[derive(Deserialize)]
+pub struct CreateManageUser {
+    pub username: String,
+    pub password: String,
+    pub name: String,
+    pub is_staff: bool
+}
+
+#[derive(Deserialize)]
+pub struct UpdateManageUser {
+    pub enable: bool
+}
+
+#[derive(Deserialize)]
+pub struct UpdateManagePassword {
+    pub new_password: String
+}
+
 impl CreatePath {
     pub fn to_string(&self) -> String {
         match self {

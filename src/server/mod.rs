@@ -1,7 +1,10 @@
-pub mod register;
-pub mod token;
-pub mod user;
-pub mod registration_code;
+mod register;
+mod token;
+mod user;
+mod registration_code;
+mod global_setting;
+mod user_management;
+mod app_management;
 
 use log::error;
 use std::error::Error;
@@ -13,12 +16,17 @@ use super::util::config::*;
 use super::service::token::token_get;
 use super::service::user::{user_update_last_login, user_get};
 
+//TODO 为所有带unsafe method的api添加options方法，支持其method辨认和结果缓存。
+
 fn register_views(scope: Scope) -> Scope {
     let mut s = scope;
     s = register::register_view(s);
     s = token::register_view(s);
     s = user::register_view(s);
     s = registration_code::register_view(s);
+    s = global_setting::register_view(s);
+    s = user_management::register_view(s);
+    s = app_management::register_view(s);
     s
 }
 
@@ -54,7 +62,7 @@ fn verify_permission(trans: &Transaction, req: &HttpRequest, is_staff: bool) -> 
     //获得token内容
     let token = s[7..].to_string();
     //尝试通过服务层获得token的model
-    let token_model = match token_get(&trans, &token) { Ok(token_model) => token_model, Err(e) => return Err(HttpResponse::InternalServerError().body(e.description().to_string())) };
+    let token_model = match token_get(trans, &token) { Ok(token_model) => token_model, Err(e) => return Err(HttpResponse::InternalServerError().body(e.description().to_string())) };
     //如果model是None表示不存在此token
     let model = if let Some(model) = token_model { model }else{ return Err(HttpResponse::Unauthorized().body("Authentication token is not exist.")) };
     //在需求是staff的情况下，继续验明user身份

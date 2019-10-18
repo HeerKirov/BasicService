@@ -51,7 +51,7 @@ create table if not exists service_app(
 
   public boolean not null default true,
   enable boolean not null default true,
-  delete boolean not null default false,
+  deleted boolean not null default false,
 
   create_time timestamp with time zone not null,
   update_time timestamp with time zone not null

@@ -33,11 +33,7 @@ impl Parameters {
                 panic!("{} is an alone param", arg);
             }
         }
-        Self {
-            commands: commands,
-            flags: flags,
-            params: params
-        }
+        Self { commands, flags, params }
     }
     pub fn side<F>(&self, execution: F) -> &Self where F: Fn(&Parameters) {
         execution(self);

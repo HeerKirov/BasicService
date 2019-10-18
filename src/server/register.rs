@@ -10,10 +10,10 @@ use super::super::service::transaction_res;
 
 fn post(body: web::Json<RegisterUser>) -> HttpResponse {
     transaction_res(|trans| {
-        let setting = match setting_get(&trans) { Ok(ok) => ok, Err(e) => return HttpResponse::InternalServerError().body(e.description().to_string()) };
+        let setting = match setting_get(trans) { Ok(ok) => ok, Err(e) => return HttpResponse::InternalServerError().body(e.description().to_string()) };
         if let RegisterMode::Close = setting.register_mode { return HttpResponse::Forbidden().body("Register closed") }
         if let Some(ref code) = body.code {
-            match code_get_enable(&trans, code) {
+            match code_get_enable(trans, code) {
                 Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
                 Ok(None) => HttpResponse::BadRequest().body("Disabled registration code"),
                 Ok(Some(code_id)) => register_new_user(trans, &body, CreatePath::Code, Some(code_id))
@@ -40,17 +40,17 @@ fn register_new_user(trans: &Transaction, body: &RegisterUser, create_path: Crea
     if body.name.is_empty() {
         return HttpResponse::BadRequest().body("field `name` cannot be empty")
     }
-    match user_exists(&trans, &body.username) {
+    match user_exists(trans, &body.username) {
         Err(e) => return HttpResponse::InternalServerError().body(e.description().to_string()),
         Ok(exist) => if exist {
             return HttpResponse::BadRequest().body("Username exist")
         }
     }
-    if let Err(e) = user_create(&trans, &body.username, &body.password, &body.name, false, create_path) {
+    if let Err(e) = user_create(trans, &body.username, &body.password, &body.name, false, create_path) {
         return HttpResponse::InternalServerError().body(e.description().to_string())
     }
     if let Some(code_id) = code_id {
-        if let Err(e) = code_use(&trans, code_id, &body.username) { 
+        if let Err(e) = code_use(trans, code_id, &body.username) { 
             return HttpResponse::InternalServerError().body(e.description().to_string()) 
         }
     }

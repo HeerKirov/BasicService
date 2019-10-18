@@ -3,9 +3,11 @@ pub mod global_setting;
 pub mod token;
 pub mod image;
 pub mod registration_code;
+pub mod user_management;
+pub mod app_management;
 
 use postgres::transaction::Transaction;
-use actix_web::{HttpResponse};
+use actix_web::HttpResponse;
 use super::db::get_connection;
 
 pub fn transaction_result<F, OK, ERR>(execution: F) -> Result<OK, ERR> where F: Fn(&Transaction) -> Result<OK, ERR> {

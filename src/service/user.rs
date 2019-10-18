@@ -128,7 +128,6 @@ pub fn password_encrypt(password: &str) -> String {
     }
     ret.to_string()
 }
-
 impl LoginError {
     pub fn to_info(&self) -> String {
         match self {

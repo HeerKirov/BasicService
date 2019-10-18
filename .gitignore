@@ -2,6 +2,7 @@
 Desktop.ini
 
 .vscode
+.idea
 
 /target
 **/*.rs.bk

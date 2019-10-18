@@ -1,4 +1,6 @@
+use serde::{Serialize, Deserialize};
 
+#[derive(Serialize, Deserialize)]
 pub enum RegisterMode {
     Open,
     Code,
@@ -7,6 +9,13 @@ pub enum RegisterMode {
 
 pub struct GlobalSetting {
     pub id: i32,
+    pub register_mode: RegisterMode,
+    pub effective_max: Option<i64>,
+    pub effective_default: i64
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ViewGlobalSetting {
     pub register_mode: RegisterMode,
     pub effective_max: Option<i64>,
     pub effective_default: i64

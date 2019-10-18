@@ -11,12 +11,12 @@ use super::super::util::config::*;
 
 fn get(req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
-        let user_id = match verify_login(&trans, &req) {
+        let user_id = match verify_login(trans, &req) {
             Err(e) => return e,
             Ok(user_id) => user_id
         };
 
-        match user_get(&trans, user_id) {
+        match user_get(trans, user_id) {
             Ok(Some(user)) => HttpResponse::Ok().json(user),
             Ok(None) => HttpResponse::InternalServerError().body("User model is not found."),
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string())
@@ -26,13 +26,13 @@ fn get(req: HttpRequest) -> HttpResponse {
 
 fn set(body: web::Json<UpdateUser>, req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
-        let user_id = match verify_login(&trans, &req) {
+        let user_id = match verify_login(trans, &req) {
             Err(e) => return e,
             Ok(user_id) => user_id
         };
 
-        match user_update(&trans, user_id, &body) {
-            Ok(_) => if let Some(user) = user_get(&trans, user_id).unwrap() {
+        match user_update(trans, user_id, &body) {
+            Ok(_) => if let Some(user) = user_get(trans, user_id).unwrap() {
                 HttpResponse::Ok().json(user)
             }else{
                 HttpResponse::InternalServerError().body("User model is not found.")
@@ -44,12 +44,12 @@ fn set(body: web::Json<UpdateUser>, req: HttpRequest) -> HttpResponse {
 
 fn set_password(body: web::Json<UpdatePassword>, req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
-        let user_id = match verify_login(&trans, &req) {
+        let user_id = match verify_login(trans, &req) {
             Err(e) => return e,
             Ok(user_id) => user_id
         };
 
-        match user_set_password(&trans, user_id, &body.old_password, &body.new_password) {
+        match user_set_password(trans, user_id, &body.old_password, &body.new_password) {
             Ok(true) => HttpResponse::Ok().body("success"),
             Ok(false) => HttpResponse::Unauthorized().body("Password Wrong"),
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string())
@@ -58,7 +58,7 @@ fn set_password(body: web::Json<UpdatePassword>, req: HttpRequest) -> HttpRespon
 }
 
 fn upload_cover(payload: web::Payload, req: HttpRequest) -> Box<dyn Future<Item=HttpResponse, Error=ActixError>> {
-    let user_id = match transaction_result(move|trans| verify_login(&trans, &req)) { 
+    let user_id = match transaction_result(move|trans| verify_login(trans, &req)) { 
         Ok(user_id) => user_id,
         Err(e) => return Box::new(lazy(||e)),
     };
@@ -77,12 +77,12 @@ fn upload_cover(payload: web::Payload, req: HttpRequest) -> Box<dyn Future<Item=
         if let Err(e) = image.move_to(&target_name) { return HttpResponse::InternalServerError().body(e.description().to_string()) }
         image.clear();
         transaction_res(|trans| {
-            if let Some(old_cover) = user_get(&trans, user_id).unwrap().unwrap().cover {
+            if let Some(old_cover) = user_get(trans, user_id).unwrap().unwrap().cover {
                 if let Err(e) = Image::delete(&format!("{}/{}", get_config().get(STATIC_COVER_DIRECTORY), old_cover)) {
                     return HttpResponse::InternalServerError().body(e.description().to_string())
                 }
             }
-            if let Err(e) = user_set_cover(&trans, user_id, &target) { 
+            if let Err(e) = user_set_cover(trans, user_id, &target) { 
                 HttpResponse::InternalServerError().body(e.description().to_string()) 
             }else{
                 HttpResponse::Ok().json(ViewCover{cover: target.to_string()})
