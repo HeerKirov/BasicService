@@ -2,14 +2,15 @@ use postgres::transaction::Transaction;
 use postgres::Error;
 use chrono::prelude::Utc;
 use uuid::Uuid;
-use super::super::model::app::{ViewManageApp, CreateApp};
+use super::super::model::app::{ViewManageApp, CreateApp, UpdateApp};
 
 pub fn app_list(t: &Transaction) -> Result<Vec<ViewManageApp>, Error> {
-    match t.query("SELECT id, name, description, public, enable, create_time, update_time 
+    match t.query("SELECT id, unique_name, name, description, public, enable, create_time, update_time
             FROM service_app WHERE NOT deleted", &[]) {
         Err(e) => Err(e),
         Ok(rows) => Ok(rows.iter().map(|row| ViewManageApp {
             id: row.get("id"),
+            unique_name: row.get("unique_name"),
             name: row.get("name"),
             description: row.get("description"),
             public: row.get("public"),
@@ -20,8 +21,8 @@ pub fn app_list(t: &Transaction) -> Result<Vec<ViewManageApp>, Error> {
     }
 }
 
-pub fn app_exists(t: &Transaction, name: &String) -> Result<bool, Error> {
-    match t.query("SELECT 1 FROM service_app WHERE name = $1 LIMIT 1", &[name]) {
+pub fn app_exists(t: &Transaction, unique_name: &String) -> Result<bool, Error> {
+    match t.query("SELECT 1 FROM service_app WHERE unique_name = $1 LIMIT 1", &[unique_name]) {
         Err(e) => Err(e),
         Ok(rows) => Ok(rows.len() > 0)
     }
@@ -29,21 +30,22 @@ pub fn app_exists(t: &Transaction, name: &String) -> Result<bool, Error> {
 
 pub fn app_create(t: &Transaction, body: &CreateApp) -> Result<(), Error> {
     let now = Utc::now();
-    match t.execute("INSERT INTO service_app(name, description, secret, public, create_time, update_time)
-            VALUES($1, $2, $3, $4, $5, $6)", 
-            &[&body.name, &body.description, &generate_secret(now.timestamp_millis()), &body.public, &now, &now]) {
+    match t.execute("INSERT INTO service_app(unique_name, name, description, secret, public, create_time, update_time)
+            VALUES($1, $2, $3, $4, $5, $6, $7)",
+            &[&body.unique_name, &body.name, &body.description, &generate_secret(now.timestamp_millis()), &body.public, &now, &now]) {
         Err(e) => Err(e),
         Ok(_) => Ok(())
     }
 }
 
 pub fn app_get(t: &Transaction, app_id: i32) -> Result<Option<ViewManageApp>, Error> {
-    match t.query("SELECT id, name, description, public, enable, create_time, update_time 
+    match t.query("SELECT id, unique_name, name, description, public, enable, create_time, update_time
             FROM service_app WHERE NOT deleted AND id = $1 LIMIT 1", &[&app_id]) {
         Err(e) => Err(e),
         Ok(rows) => if rows.len() > 0 {
             Ok(Some(ViewManageApp {
                 id: rows.get(0).get("id"),
+                unique_name: rows.get(0).get("unique_name"),
                 name: rows.get(0).get("name"),
                 description: rows.get(0).get("description"),
                 public: rows.get(0).get("public"),
@@ -57,13 +59,14 @@ pub fn app_get(t: &Transaction, app_id: i32) -> Result<Option<ViewManageApp>, Er
     }
 }
 
-pub fn app_get_by_name(t: &Transaction, name: &String) -> Result<Option<ViewManageApp>, Error> {
-    match t.query("SELECT id, name, description, public, enable, create_time, update_time 
-            FROM service_app WHERE NOT deleted AND name = $1 LIMIT 1", &[name]) {
+pub fn app_get_by_unique_name(t: &Transaction, unique_name: &String) -> Result<Option<ViewManageApp>, Error> {
+    match t.query("SELECT id, unique_name, name, description, public, enable, create_time, update_time
+            FROM service_app WHERE NOT deleted AND unique_name = $1 LIMIT 1", &[unique_name]) {
         Err(e) => Err(e),
         Ok(rows) => if rows.len() > 0 {
             Ok(Some(ViewManageApp {
                 id: rows.get(0).get("id"),
+                unique_name: rows.get(0).get("unique_name"),
                 name: rows.get(0).get("name"),
                 description: rows.get(0).get("description"),
                 public: rows.get(0).get("public"),
@@ -101,10 +104,10 @@ pub fn app_update_secret(t: &Transaction, app_id: i32) -> Result<Option<String>,
     }
 }
 
-pub fn app_update(t: &Transaction, app_id: i32, body: &CreateApp) -> Result<bool, Error> {
-    match t.execute("UPDATE service_app SET name = $1, description = $2, public = $3, update_time = $4 
-            WHERE id = $5 AND NOT deleted", 
-            &[&body.name, &body.description, &body.public, &Utc::now(), &app_id]) {
+pub fn app_update(t: &Transaction, app_id: i32, body: &UpdateApp) -> Result<bool, Error> {
+    match t.execute("UPDATE service_app SET name = $1, description = $2, public = $3, update_time = $4, enable = $5
+            WHERE id = $6 AND NOT deleted",
+            &[&body.name, &body.description, &body.public, &Utc::now(), &body.enable, &app_id]) {
         Err(e) => Err(e),
         Ok(size) => Ok(size > 0)
     }

@@ -1,13 +1,18 @@
 mod register;
 mod token;
 mod user;
+mod app;
+mod app_use;
 mod registration_code;
 mod global_setting;
 mod user_management;
 mod app_management;
+mod app_use_management;
+mod app_verify;
 
 use log::error;
 use std::error::Error;
+use actix_cors::Cors;
 use actix_web::{web, App, HttpServer, Scope, HttpRequest, HttpResponse};
 use actix_files::Files;
 use postgres::transaction::Transaction;
@@ -16,17 +21,19 @@ use super::util::config::*;
 use super::service::token::token_get;
 use super::service::user::{user_update_last_login, user_get};
 
-//TODO 为所有带unsafe method的api添加options方法，支持其method辨认和结果缓存。
-
 fn register_views(scope: Scope) -> Scope {
     let mut s = scope;
     s = register::register_view(s);
     s = token::register_view(s);
     s = user::register_view(s);
+    s = app::register_view(s);
+    s = app_use::register_view(s);
     s = registration_code::register_view(s);
     s = global_setting::register_view(s);
     s = user_management::register_view(s);
     s = app_management::register_view(s);
+    s = app_use_management::register_view(s);
+    s = app_verify::register_view(s);
     s
 }
 
@@ -36,6 +43,7 @@ pub fn run_server() {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::new("[%a] \"%r\" %s - %Ts"))
+            .wrap(Cors::new().send_wildcard().max_age(3600))
             .service(Files::new(config.get(STATIC_COVER_PREFIX), config.get(STATIC_COVER_DIRECTORY)).show_files_listing())
             .service(register_views(web::scope(&prefix)))
     })
@@ -46,11 +54,9 @@ pub fn run_server() {
 pub fn verify_login(trans: &Transaction, req: &HttpRequest) -> Result<i32, HttpResponse> {
     verify_permission(trans, req, false)
 }
-
 pub fn verify_staff(trans: &Transaction, req: &HttpRequest) -> Result<i32, HttpResponse> {
     verify_permission(trans, req, true)
 }
-
 fn verify_permission(trans: &Transaction, req: &HttpRequest, is_staff: bool) -> Result<i32, HttpResponse> {
     //拿到header条目
     let value = if let Some(value) = req.headers().get("Authorization") { value }else{ return Err(HttpResponse::Unauthorized().body("No authorization token.")) };
@@ -76,10 +82,6 @@ fn verify_permission(trans: &Transaction, req: &HttpRequest, is_staff: bool) -> 
     //尝试更新最后登录信息
     if let Err(e) = user_update_last_login(trans, model.user_id, &get_request_ip(req)) { error!("update user last login message failed. {}", e) }
     Ok(model.user_id)
-}
-
-pub fn response_405() -> HttpResponse {
-    HttpResponse::MethodNotAllowed().finish()
 }
 
 pub fn get_request_ip(req: &HttpRequest) -> Option<String> {

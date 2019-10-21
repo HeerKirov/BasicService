@@ -1,7 +1,8 @@
 use std::error::Error;
 use actix_web::{web, Scope, HttpRequest, HttpResponse};
-use super::super::model::app::{CreateApp, ViewManageSecret};
-use super::super::service::app_management::{app_list, app_create, app_get, app_get_by_name, app_get_secret, app_update_secret, app_exists, app_update, app_delete};
+use super::super::model::app::{CreateApp, UpdateApp, ViewManageSecret};
+use super::super::service::app_management::{app_list, app_create, app_get, app_get_by_unique_name, app_get_secret, app_update_secret, app_exists, app_update, app_delete};
+use super::super::service::app_use_management::use_delete_by_app;
 use super::super::service::transaction_res;
 use super::verify_staff;
 
@@ -17,14 +18,14 @@ fn list(req: HttpRequest) -> HttpResponse {
 fn create(body: web::Json<CreateApp>, req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
-        match app_exists(trans, &body.name) {
+        match app_exists(trans, &body.unique_name) {
             Err(e) => return HttpResponse::InternalServerError().body(e.description().to_string()),
-            Ok(true) => return HttpResponse::BadRequest().body("App name exist"),
+            Ok(true) => return HttpResponse::BadRequest().body("App unique name exist"),
             _ => {}
         }
         match app_create(trans, &body) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
-            Ok(_) => match app_get_by_name(trans, &body.name) {
+            Ok(_) => match app_get_by_unique_name(trans, &body.unique_name) {
                 Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
                 Ok(None) => HttpResponse::InternalServerError().body("App not found."),
                 Ok(Some(ok)) => HttpResponse::Created().json(ok)
@@ -42,7 +43,7 @@ fn retrieve(app_id: web::Path<i32>, req: HttpRequest) -> HttpResponse {
         }
     })
 }
-fn update(app_id: web::Path<i32>, body: web::Json<CreateApp>, req: HttpRequest) -> HttpResponse {
+fn update(app_id: web::Path<i32>, body: web::Json<UpdateApp>, req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
         match app_update(trans, *app_id, &body) {
@@ -59,7 +60,9 @@ fn update(app_id: web::Path<i32>, body: web::Json<CreateApp>, req: HttpRequest) 
 fn delete(app_id: web::Path<i32>, req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
-        //TODO 同步移除所有与之关联的app-use
+        if let Err(e) = use_delete_by_app(trans, *app_id) {
+            return HttpResponse::InternalServerError().body(e.description().to_string())
+        }
         match app_delete(trans, *app_id) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
             Ok(false) => HttpResponse::NotFound().finish(),

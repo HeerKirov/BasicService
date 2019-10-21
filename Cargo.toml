@@ -10,6 +10,8 @@ default = ["postgres/with-chrono"]  # 启用日期类型对psql引擎的类型�
 [dependencies]
 actix-web = "1.0.8"         # web框架
 actix-files = "0.1.6"       # web框架进行静态文件解析
+actix-service = "0.4.2"     # web框架中间件
+actix-cors = "0.1.0"        # web框架cors中间件
 r2d2 = "0.8.5"              # 数据库连接池
 postgres = "0.15"           # psql数据库引擎
 rust-crypto = "0.2.36"      # 加密工具包，用于提供密码的hmac加密

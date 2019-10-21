@@ -2,9 +2,13 @@ pub mod user;
 pub mod global_setting;
 pub mod token;
 pub mod image;
+pub mod app;
+pub mod app_use;
 pub mod registration_code;
 pub mod user_management;
 pub mod app_management;
+pub mod app_use_management;
+pub mod app_verify;
 
 use postgres::transaction::Transaction;
 use actix_web::HttpResponse;

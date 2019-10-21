@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use std::collections::HashMap;
 use std::fs;
-use log::{debug};
+use log::debug;
 
 pub const SECRET_KEY: &'static str = "secret.key";
 pub const WEB_API_PREFIX: &'static str = "web.api.prefix";

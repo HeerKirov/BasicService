@@ -14,6 +14,6 @@ fn main() {
             "runserver" => run_server(),
             "initialize-datasource" => initialize_datasource(),
             "clean-expired-token" => clean_expired_token(),
-            _ => panic!("no such command {}", command)
+            _ => println!("no such command \"{}\"", command)
     });
 }

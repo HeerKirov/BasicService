@@ -167,9 +167,66 @@ token将在持续时长结束后过期，并被销毁。如果想延长一个已
 
 - **Path**
     - `cover`: 头像文件名。
-
 - **Response Body** [200 Ok]
     图像文件的二进制内容。
+
+### /api/app/ GET
+获得系统中公有app的列表。  
+公有app即为系统中对所有用户公开使用的app。
+
+- **Verify**: login
+
+- **Response Body** [200 Ok]
+    - list[]
+        - `id`: int - app id
+        - `name`: string - app name
+        - `description`: string - app简介
+        - `create_time`: datetime
+        - `update_time`: datetime
+
+### /api/app/{app-id}/ GET
+获得指定的公有app的详情。
+
+- **Verify**: login
+
+- **Path**
+    - `app-id`: app id
+
+- **Response Body** [200 Ok]
+    - `id`: int - app id
+    - `name`: string - app name
+    - `description`: string - app简介
+    - `create_time`: datetime
+    - `update_time`: datetime
+
+### /api/app-use/ GET
+获得当前用户拥有使用关系的所有app的列表。  
+这也将包括那些没有公开的app。这些app确实在本系统中找不到入口，要想激活要去对应的app使用。
+
+- **Verify**: login
+
+- **Response Body** [200 Ok]
+    - list[]
+        - `id`: int - use id
+        - `app`: json - app 详情，参考`/api/app/{app-id}/ GET`API的内容
+        - `public_app`: bool - 标记该app是否是公有的。公有app是能在公有app列表找到的
+        - `last_use`: datetime|null - 上次使用该app的时间
+        - `create_time`: datetime - 使用记录创建的时间，也就是当前用户初次激活此app的时间
+
+### /api/app-use/{use-id}/ GET
+获得指定的公有app的详情。
+
+- **Verify**: login
+
+- **Path**
+    - `use-id`: use id
+
+- **Response Body** [200 Ok]
+    - `id`: int - use id
+    - `app`: json - app 详情，参考`/api/app/{app-id}/ GET`API的内容
+    - `public_app`: bool - 标记该app是否是公有的。公有app是能在公有app列表找到的
+    - `last_use`: datetime|null - 上次使用该app的时间
+    - `create_time`: datetime - 使用记录创建的时间，也就是当前用户初次激活此app的时间
 
 ## 管理API
 
@@ -393,6 +450,21 @@ token将在持续时长结束后过期，并被销毁。如果想延长一个已
 - **Response Error**
     1. 404 Not Found - 找不到指定的用户
 
+### /api/admin/user/{user}/use/ GET
+用户使用过的app及使用记录。
+
+- **Verify**: admin
+
+- **Path**
+    - `user: user id
+
+- **Response Body** [200 Ok]
+    - `id`: int - use id
+    - `last_use`: datetime|null - 用户上次使用
+    - `create_time`: datetime - 使用记录创建的时间，也就是初次激活的时间
+    - `update_time`: datetime - 使用记录更新的时间，也就是附加信息更新的时间
+    - `app`: json - 用户信息，参考`/api/admin/app/{app-id}/ GET`API。
+
 ### /api/admin/app/ GET
 获得系统全部app的列表。
 
@@ -401,7 +473,8 @@ token将在持续时长结束后过期，并被销毁。如果想延长一个已
 - **Response Body** [200 Ok]
     - list[]
         - `id`: int - app id
-        - `name`: string - app名称
+        - `unique_name`: string - app的唯一标识名称
+        - `name`: string - app的显示名称
         - `description`: string - 描述
         - `public`: bool - 是否是公共可见的app。公共可见的app能够出现在用户查询的app列表里。非可见的app不会出现在列表，但是还是能够通过其他途径被用户使用。
         - `enable`: bool - 该app可用。不可用的app将在用户列表不可见，且不能通过app查询接口被调用
@@ -414,13 +487,15 @@ token将在持续时长结束后过期，并被销毁。如果想延长一个已
 - **Verify**: admin
 
 - **Request Body**
-    - `name`: string - app名称
+    - `unique_name`: string - app的唯一标识名称
+    - `name`: string - app的显示名称
     - `description`: string - 描述
     - `public`: bool - 是否是公共可见的app。公共可见的app能够出现在用户查询的app列表里。非可见的app不会出现在列表，但是还是能够通过其他途径被用户使用。
 
 - **Response Body** [201 Created]
     - `id`: int - app id
-    - `name`: string - app名称
+    - `unique_name`: string - app的唯一标识名称
+    - `name`: string - app的显示名称
     - `description`: string - 描述
     - `public`: bool - 是否是公共可见的app。公共可见的app能够出现在用户查询的app列表里。非可见的app不会出现在列表，但是还是能够通过其他途径被用户使用。
     - `enable`: bool - 该app可用。不可用的app将在用户列表不可见，且不能通过app查询接口被调用
@@ -435,7 +510,7 @@ token将在持续时长结束后过期，并被销毁。如果想延长一个已
 - **Path**
     - `app-id`: app id
 
-- **Response Body**
+- **Response Body** [200 Ok]
     参考`/api/admin/app/ POST`API。
 
 - **Response Error**
@@ -450,9 +525,12 @@ token将在持续时长结束后过期，并被销毁。如果想延长一个已
     - `app-id`: app id
 
 - **Request Body**
-    参考`/api/admin/app/ POST`API。
+    - `name`: string - app的显示名称
+    - `description`: string - 描述
+    - `public`: bool - 是否是公共可见的app。公共可见的app能够出现在用户查询的app列表里。非可见的app不会出现在列表，但是还是能够通过其他途径被用户使用。
+    - `enable`: bool - 该app可用
 
-- **Response Body**
+- **Response Body** [200 Ok]
     参考`/api/admin/app/ POST`API。
 
 - **Response Error**
@@ -481,7 +559,7 @@ app所代表的应用程序通过本系统查询token时，不走用户接口，
 - **Path**
     - `app-id`: app id
 
-- **Response Body**
+- **Response Body** [200 Ok]
     - `secret`: string - 密码
 
 - **Response Error**
@@ -495,26 +573,96 @@ app所代表的应用程序通过本系统查询token时，不走用户接口，
 - **Path**
     - `app-id`: app id
 
-- **Response Body**
+- **Response Body** [200 Ok]
     - `secret`: string - 密码
 
 - **Response Error**
     1. 404 Not Found - 找不到指定的app
 
-## 应用程序接入API
+### /api/admin/app/{app-id}/use/ GET
+获得该app下，使用了此app的用户及其使用记录。
 
-### /api/ METHOD
-
-- **Verify**: login
+- **Verify**: admin
 
 - **Path**
-    - ``: 
+    - `app-id`: app id
+
+- **Response Body** [200 Ok]
+    - `id`: int - use id
+    - `last_use`: datetime|null - 用户上次使用
+    - `create_time`: datetime - 使用记录创建的时间，也就是初次激活的时间
+    - `update_time`: datetime - 使用记录更新的时间，也就是附加信息更新的时间
+    - `user`: json - 用户信息，参考`/api/admin/user/{user-id}/ GET`API。
+
+
+### /api/admin/app-use/{use-id}/ GET
+一条用户-app使用记录的详细信息。
+
+- **Verify**: admin
+
+- **Path**
+    - `use-id`: use id
+
+- **Response Body** [200 Ok]
+    - `id`: int - use id
+    - `last_use`: datetime|null - 用户上次使用
+    - `create_time`: datetime - 使用记录创建的时间，也就是初次激活的时间
+    - `update_time`: datetime - 使用记录更新的时间，也就是附加信息更新的时间
+    - `app_id`: int - app id
+    - `user_id`: int - user id
+
+## 应用程序接入API
+
+### /api/interface/verify/ GET
+在本系统注册的应用程序，通过正式接口验证一个token是否是正确可用的。
 
 - **Request Body**
-    - ``:
+    - `app_id`: (optional)int - app id
+    - `app_unique_name`: (optional)string - app unique_name。这两个标识信息需要用其中一个，并且同时出现时app_id优先
+    - `secret`: string - app secret，app必须提供此密码以表明身份正确
+    - `token`: (optional)string - 要验证的用户token
+    - `user_id`: (optional)int - 要验证的用户user id
+    - `username`: (optional)string - 要验证的用户username。这三个标识信息需要用到其中一个，并且同时出现时优先顺序是token, user_id, username
     
 - **Response Body** [200 Ok]
-    - ``:
+    - `user_id`: i32 - 用户user id
+    - `username`: string - 用户username
+    - `is_staff`: bool - 用户在认证系统中是一个系统管理员
+    - `info`: string|null - app给该用户填写的附加信息。初次使用的用户默认是null
 
 - **Response Error**
-    1. 500 ISE - 
+    1. 400 Bad Request
+        - `Neither id nor name`: app_id和app_unique_name都没有出现
+        - `Neither token nor user_id nor username`: token, user_id, username都没有出现
+    2. 401 Unauthorized
+        - `Secret wrong`: 提供了错误的secret密码
+    3. 403 Forbidden
+        - `App not enabled`: 该app已经被禁用
+    4. 404 Not Found
+        - `No this app`: 指定的app并不存在
+        - `No this token`: 要验证的token并不存在，也就是不可用
+
+### /api/interface/info/ POST
+在本系统注册的应用程序，通过正式接口变更一个用户的info信息。  
+如果该用户没有使用记录，那么变更将不会成功。
+
+- **Request Body**
+    - `app_id`: (optional)int - app id
+    - `app_unique_name`: (optional)string - app unique_name。这两个标识信息需要用其中一个，并且同时出现时app_id优先
+    - `secret`: string - app secret，app必须提供此密码以表明身份正确
+    - `user_id`: int - user id
+    - `info`: string|null - 新的info值
+    
+- **Response Body** [200 Ok]
+    (empty)
+
+- **Response Error**
+    1. 400 Bad Request
+        - `Neither id nor name`: app_id和app_unique_name都没有出现
+    2. 401 Unauthorized
+        - `Secret wrong`: 提供了错误的secret密码
+    3. 403 Forbidden
+        - `App not enabled`: 该app已经被禁用
+    4. 404 Not Found
+        - `No this app`: 指定的app并不存在
+        - `No this user`: 用户并不存在，可能是这个用户不存在，也可能是用户没有在该app的使用记录

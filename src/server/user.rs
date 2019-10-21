@@ -4,7 +4,7 @@ use futures::future::lazy;
 use actix_web::{web, Scope, HttpRequest, HttpResponse, Error as ActixError};
 use super::super::model::user::{UpdateUser, UpdatePassword, ViewCover};
 use super::super::service::user::{user_get, user_update, user_set_password, user_set_cover};
-use super::super::service::image::{Image};
+use super::super::service::image::Image;
 use super::super::service::{transaction_res, transaction_result};
 use super::verify_login;
 use super::super::util::config::*;

@@ -45,7 +45,8 @@ create index if not exists service_token_user_id_index on service_token (user_id
 
 create table if not exists service_app(
   id serial not null constraint service_app_pkey primary key,
-  name varchar(32) unique not null,
+  unique_name varchar(32) unique not null,
+  name varchar(32) not null,
   description varchar(256) not null,
   secret varchar(128) not null,
 
@@ -56,13 +57,14 @@ create table if not exists service_app(
   create_time timestamp with time zone not null,
   update_time timestamp with time zone not null
 );
-create index if not exists service_app_name_index on service_app (name);
+create index if not exists service_app_unique_name_index on service_app (unique_name);
 
 create table if not exists service_app_use(
   id serial not null constraint service_app_use_pkey primary key,
   user_id integer not null constraint service_app_use_user_id_key references service_user on update cascade on delete cascade deferrable initially deferred,
   app_id integer not null constraint service_app_use_app_id_key references service_app on update cascade on delete cascade deferrable initially deferred,
 
+  info text null,
   last_use timestamp with time zone null,
 
   create_time timestamp with time zone not null,

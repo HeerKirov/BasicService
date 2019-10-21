@@ -1,8 +1,8 @@
-use log::{error};
+use log::error;
 use std::io::{Error, ErrorKind};
 use std::process::Command;
 use std::fs::{File, OpenOptions};
-use std::io::{Write};
+use std::io::Write;
 use uuid::Uuid;
 
 const ORIGIN_FILE: &'static str = "origin";

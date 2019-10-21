@@ -1,6 +1,6 @@
 use std::error::Error;
 use actix_web::{web, Scope, HttpRequest, HttpResponse};
-use super::super::model::global_setting::{ViewGlobalSetting};
+use super::super::model::global_setting::ViewGlobalSetting;
 use super::super::service::global_setting::{setting_get, setting_set};
 use super::super::service::transaction_res;
 use super::verify_staff;
