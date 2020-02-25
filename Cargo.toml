@@ -1,6 +1,6 @@
 [package]
 name = "basic_service"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Heer Kirov <HeerKirov@outlook.com>"]
 edition = "2018"
 

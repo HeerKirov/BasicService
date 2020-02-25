@@ -96,6 +96,7 @@ token将在持续时长结束后过期，并被销毁。如果想延长一个已
         - `Need registration code`: 系统处于仅注册码模式，必须提供注册码
         - `Username exist`: 该用户名已经存在
         - `field {field} cannot be empty`: 必填字段有留空
+        - `field ``username`` is invalid`: 字段内容不正确
         
 
 ### /api/user/ GET
@@ -383,6 +384,7 @@ token将在持续时长结束后过期，并被销毁。如果想延长一个已
     1. 400 Bad Request
         - `Username exist`: 该用户名已经存在
         - `field {field} cannot be empty`: 必填字段有留空
+        - `field ``username`` is invalid`: 字段内容不正确
 
 ### /api/admin/user/{user}/ GET
 获得指定的用户的详细信息。
@@ -502,6 +504,9 @@ token将在持续时长结束后过期，并被销毁。如果想延长一个已
     - `create_time`: datetime - 创建时间
     - `update_time`: datetime - 上次更新的时间
 
+- **Response Error**
+    1. 400 Bad Request - `field ``unique_name`` is invalid` - 字段内容不正确
+
 ### /api/admin/app/{app-id}/ GET
 获得指定的app的信息。 
 
@@ -594,7 +599,6 @@ app所代表的应用程序通过本系统查询token时，不走用户接口，
     - `update_time`: datetime - 使用记录更新的时间，也就是附加信息更新的时间
     - `user`: json - 用户信息，参考`/api/admin/user/{user-id}/ GET`API。
 
-
 ### /api/admin/app-use/{use-id}/ GET
 一条用户-app使用记录的详细信息。
 
@@ -613,7 +617,7 @@ app所代表的应用程序通过本系统查询token时，不走用户接口，
 
 ## 应用程序接入API
 
-### /api/interface/verify/ GET
+### /api/interface/verify/ POST
 在本系统注册的应用程序，通过正式接口验证一个token是否是正确可用的。
 
 - **Request Body**

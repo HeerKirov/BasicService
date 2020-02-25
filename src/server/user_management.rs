@@ -5,6 +5,7 @@ use super::super::service::user::{user_exists, user_create};
 use super::super::service::user_management::{user_list, user_get, user_get_by_username, user_set_password, user_set_enable, user_delete};
 use super::super::service::token::token_clean_all_by_id;
 use super::super::service::transaction_res;
+use super::super::util::check::validate_std_name;
 use super::verify_staff;
 
 fn list(req: HttpRequest) -> HttpResponse {
@@ -21,6 +22,9 @@ fn create(body: web::Json<CreateManageUser>, req: HttpRequest) -> HttpResponse {
         if let Err(e) = verify_staff(trans, &req) { return e }
         if body.username.is_empty() {
             return HttpResponse::BadRequest().body("field `username` cannot be empty")
+        }
+        if !validate_std_name(&body.username) {
+            return HttpResponse::BadRequest().body("field `username` is invalid")
         }
         if body.password.is_empty() {
             return HttpResponse::BadRequest().body("field `password` cannot be empty")

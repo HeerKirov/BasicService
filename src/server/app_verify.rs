@@ -55,7 +55,7 @@ fn update_info(body: web::Json<InfoUpdateRequest>) -> HttpResponse {
 }
 
 pub fn register_view(scope: Scope) -> Scope {
-    scope.route("/interface/verify/", web::get().to(verify))
+    scope.route("/interface/verify/", web::post().to(verify))
         .route("/interface/info/", web::post().to(update_info))
 }
 

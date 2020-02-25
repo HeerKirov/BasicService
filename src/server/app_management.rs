@@ -4,6 +4,7 @@ use super::super::model::app::{CreateApp, UpdateApp, ViewManageSecret};
 use super::super::service::app_management::{app_list, app_create, app_get, app_get_by_unique_name, app_get_secret, app_update_secret, app_exists, app_update, app_delete};
 use super::super::service::app_use_management::use_delete_by_app;
 use super::super::service::transaction_res;
+use super::super::util::check::validate_std_name;
 use super::verify_staff;
 
 fn list(req: HttpRequest) -> HttpResponse {
@@ -18,6 +19,9 @@ fn list(req: HttpRequest) -> HttpResponse {
 fn create(body: web::Json<CreateApp>, req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
+        if !validate_std_name(&body.unique_name) {
+            return HttpResponse::BadRequest().body("App unique name is invalid")
+        }
         match app_exists(trans, &body.unique_name) {
             Err(e) => return HttpResponse::InternalServerError().body(e.description().to_string()),
             Ok(true) => return HttpResponse::BadRequest().body("App unique name exist"),

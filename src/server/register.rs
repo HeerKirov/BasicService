@@ -7,6 +7,7 @@ use super::super::service::global_setting::setting_get;
 use super::super::service::registration_code::{code_get_enable, code_use};
 use super::super::service::user::{user_create, user_exists};
 use super::super::service::transaction_res;
+use super::super::util::check::validate_std_name;
 
 fn post(body: web::Json<RegisterUser>) -> HttpResponse {
     transaction_res(|trans| {
@@ -33,6 +34,9 @@ pub fn register_view(scope: Scope) -> Scope {
 fn register_new_user(trans: &Transaction, body: &RegisterUser, create_path: CreatePath, code_id: Option<i32>) -> HttpResponse {
     if body.username.is_empty() {
         return HttpResponse::BadRequest().body("field `username` cannot be empty")
+    }
+    if !validate_std_name(&body.username) {
+        return HttpResponse::BadRequest().body("field `username` is invalid")
     }
     if body.password.is_empty() {
         return HttpResponse::BadRequest().body("field `password` cannot be empty")

@@ -1,0 +1,1119 @@
+openapi: 3.0.0
+servers:
+  - description: 本地服务器
+    url: 'http://localhost:8000'
+  - description: 线上服务器
+    url: 'https://www.heerkirov.com/api'
+info:
+  title: Basic Service REST API
+  version: 0.1.0
+  description: |
+    提供基础的用户认证和管理服务。
+    ### 使用说明
+    API分为三部分。
+    * 用户API：用户注册登录，查阅用户信息，查阅使用的App信息。
+    * 管理API：具有管理权限的用户修改系统设置，管理注册码、用户、App。
+    * 应用程序对接API：提供给使用此服务的应用程序，进行校验对接，提供比用户校验API更多的功能。
+    ### 用户认证
+    系统只提供Bearer Token认证。在发送请求时，编写请求头`Authorization`: `Bearer {token}`。token使用API`/api/token/`获得。
+    用户认证成功时，会继续后续的业务请求。
+    ### 公共错误信息
+    下面是几种几乎所有API都会存在的错误犯回信息，在这里统一列出。
+    1. 401 Unauthorized
+      * 没有获得Authorization请求头，请求头无法被正确解析，或请求头不是合法的Bearer格式
+      * token不存在，已经过期，或已被销毁
+    2. 403 Forbidden - 不止需要登录，还需要更高的权限，比如管理员权限
+    3. 400 Bad Request
+      * Request Body的内容无法被解析为json
+      * Body的内容无法满足API描述的需要
+tags:
+  - name: Token
+    description: 用户Token
+  - name: User
+    description: 用户信息
+  - name: App
+    description: 用户App
+  - name: Admin Setting
+    description: "[管理]系统设置"
+  - name: Admin Registration Code
+    description: "[管理]注册码"
+  - name: Admin User
+    description: "[管理]用户"
+  - name: Admin App
+    description: "[管理]App"
+  - name: Admin App Use
+    description: "[管理]App使用记录"
+  - name: Interface
+    description: 应用程序接入
+paths:
+  /api/token/:
+    post:
+      tags: [Token]
+      summary: "生成新Token"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/TokenCreateBody'}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenResBody'}
+        '401':
+          description: Unauthorized
+          content:
+            plain/text:
+              example:
+                'Password wrong': 密码错误
+                'User not exist': 该用户不存在
+                'User not enabled': 该用户已被停用
+  /api/token/{token}/:
+    get:
+      tags: [Token]
+      summary: "查询Token的状态"
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenResBody'}
+        '404':
+          description: Not Found
+    put:
+      tags: [Token]
+      summary: "对Token的持续时间进行刷新"
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/TokenUpdateBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenResBody'}
+        '404':
+          description: Not Found
+  /api/register/:
+    post:
+      tags: [User]
+      summary: "注册新用户"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegisterReqBody'}
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+          content:
+            plain/text:
+              example:
+                'Disabled registration code': 使用了无法使用的注册码，可能是注册码错误、过期、已被使用
+                'Need registration code': 系统处于仅注册码模式，必须提供注册码
+                'Username exist': 该用户名已经存在
+                'field {field} cannot be empty': 必填字段有留空
+                'field `username` is invalid': 用户名内容非法
+        '403':
+          description: Forbidden
+          content:
+            plain/text:
+              example:
+                'Register closed': 注册关闭
+  /api/user/:
+    get:
+      tags: [User]
+      summary: "查看用户信息"
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UserResBody'}
+    post:
+      tags: [User]
+      summary: "更改用户信息"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UserUpdateBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UserResBody'}
+    put:
+      tags: [User]
+      summary: "更改用户信息(同POST)"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UserUpdateBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UserResBody'}
+  /api/user/password/:
+    post:
+      tags: [User]
+      summary: "修改用户密码"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PasswordUpdateBody'}
+      responses:
+        '200':
+          description: Ok
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              example:
+                'Password wrong': 旧密码错误
+  /api/user/cover/:
+    post:
+      tags: [User]
+      summary: "上传用户头像"
+      requestBody:
+        content: {}
+      responses:
+        '200':
+          description: Ok
+        '400':
+          description: Bad Request - 文件转换出现问题，或文件类型不正确
+  /static/cover/{cover}/:
+    get:
+      tags: [User]
+      summary: "获得用户头像"
+      parameters:
+        - name: cover
+          in: path
+          required: true
+          schema: {type: string}
+          description: 用户头像的文件名。从用户信息中获得。
+      responses:
+        '200':
+          description: Ok
+          content:
+            binary: {}
+        '404':
+          description: Not Found
+  /api/app/:
+    get:
+      tags: [App]
+      summary: "获得系统中公用App列表"
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AppResBody'}
+  /api/app/{app-id}/:
+    get:
+      tags: [App]
+      summary: "获得App详情"
+      parameters:
+        - name: app-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AppResBody'}
+        '404':
+          description: Not Found
+  /api/app-use/:
+    get:
+      tags: [App]
+      summary: "获得用户拥有使用关系的App的列表"
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AppUseResBody'}
+  /api/app-use/{use-id}/:
+    get:
+      tags: [App]
+      summary: "获得App及使用关系的详情"
+      parameters:
+        - name: use-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AppUseResBody'}
+        '404':
+          description: Not Found
+  /api/admin/setting/:
+    get:
+      tags: ['Admin Setting']
+      summary: "查看系统设置"
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SettingBody'}
+    post:
+      tags: ['Admin Setting']
+      summary: "更改系统设置"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SettingBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SettingBody'}
+    put:
+      tags: ['Admin Setting']
+      summary: "更改系统设置(同POST)"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SettingBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SettingBody'}
+  /api/admin/registration-code/:
+    get:
+      tags: ['Admin Registration Code']
+      summary: "获得注册码列表"
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/CodeResBody'}
+    post:
+      tags: ['Admin Registration Code']
+      summary: "创建一条新的注册码"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CodeCreateBody'}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CodeResBody'}
+  /api/admin/registration-code/{code-id}/:
+    get:
+      tags: ['Admin Registration Code']
+      summary: "获得注册码详情"
+      parameters:
+        - name: code-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CodeResBody'}
+        '404':
+          description: Not Found
+    put:
+      tags: ['Admin Registration Code']
+      summary: "更改注册码的部分选项"
+      parameters:
+        - name: code-id
+          required: true
+          in: path
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CodeUpdateBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CodeResBody'}
+        '404':
+          description: Not Found
+  /api/admin/user/:
+    get:
+      tags: ['Admin User']
+      summary: "获得用户列表"
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AdminUserResBody'}
+    post:
+      tags: ['Admin User']
+      summary: "创建新用户"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AdminUserCreateBody'}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminUserResBody'}
+  /api/admin/user/{user-id}/:
+    get:
+      tags: ['Admin User']
+      summary: "获得用户详情"
+      parameters:
+        - name: user-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminUserResBody'}
+        '404':
+          description: Not Found
+    put:
+      tags: ['Admin User']
+      summary: "变更用户状态"
+      parameters:
+        - name: user-id
+          required: true
+          in: path
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AdminUserUpdateBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminUserResBody'}
+        '404':
+          description: Not Found
+    delete:
+      tags: ['Admin User']
+      summary: "删除用户"
+      parameters:
+        - name: user-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /api/admin/user/{user-id}/password/:
+    put:
+      tags: ['Admin User']
+      summary: "修改用户密码"
+      parameters:
+        - name: user-id
+          required: true
+          in: path
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AdminPasswordUpdateBody'}
+      responses:
+        '200':
+          description: Ok
+        '404':
+          description: Not Found
+  /api/admin/app/:
+    get:
+      tags: ['Admin App']
+      summary: "获得App列表"
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/AdminAppResBody'}
+    post:
+      tags: ['Admin App']
+      summary: "创建新App"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AdminAppCreateBody'}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminAppResBody'}
+  /api/admin/app/{app-id}/:
+    get:
+      tags: ['Admin App']
+      summary: "获得App详情"
+      parameters:
+        - name: app-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminAppResBody'}
+        '404':
+          description: Not Found
+    put:
+      tags: ['Admin App']
+      summary: "变更App信息"
+      parameters:
+        - name: app-id
+          required: true
+          in: path
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AdminAppUpdateBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminUserResBody'}
+        '404':
+          description: Not Found
+    delete:
+      tags: ['Admin App']
+      summary: "删除App"
+      parameters:
+        - name: app-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+  /api/admin/app/{app-id}/secret/:
+    get:
+      tags: ['Admin App']
+      summary: "获得App的secret"
+      parameters:
+        - name: app-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminAppSecretResBody'}
+        '404':
+          description: Not Found
+    put:
+      tags: ['Admin App']
+      summary: "重新生成App的secret"
+      parameters:
+        - name: app-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminAppSecretResBody'}
+        '404':
+          description: Not Found
+  /api/admin/user/{user-id}/use/:
+    get:
+      tags: ['Admin App Use']
+      summary: "获得用户所有使用的App的列表"
+      parameters:
+        - name: user-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminUseUserResBody'}
+        '404':
+          description: Not Found
+  /api/admin/app/{app-id}/use/:
+    get:
+      tags: ['Admin App Use']
+      summary: "获得App的所有用户的列表"
+      parameters:
+        - name: app-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminUseAppResBody'}
+  /api/admin/app-use/{use-id}/:
+    get:
+      tags: ['Admin App Use']
+      summary: "获得使用记录详情"
+      parameters:
+        - name: use-id
+          required: true
+          in: path
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AdminUseResBody'}
+        '404':
+          description: Not Found
+  /api/interface/verify/:
+    post:
+      tags: [Interface]
+      summary: "[应用程序]验证一项token是否可用"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/InterfaceVerifyReqBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/InterfaceVerifyResBody'}
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              example:
+                'Neither id nor name': app_id和app_unique_name都没有出现
+                'Neither token nor user_id nor username': token, user_id, username都没有出现
+        '401':
+          description: Unauthorization
+          content:
+            text/plain:
+              example:
+                'Secret wrong': 提供了错误的secret密码
+        '403':
+          description: Forbidden
+          content:
+            text/plain:
+              example:
+                'App not enabled': 该app已经被禁用
+        '404':
+          description: Not Found
+          content:
+            text/plain:
+              example:
+                'No this app': 指定的app并不存在
+                'No this token': 要验证的token并不存在，也就是不可用
+  /api/interface/info/:
+    post:
+      tags: [Interface]
+      summary: "[应用程序]变更用户的附加信息"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/InterfaceInfoReqBody'}
+      responses:
+        '200':
+          description: Ok
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              example:
+                'Neither id nor name': app_id和app_unique_name都没有出现
+        '401':
+          description: Unauthorization
+          content:
+            text/plain:
+              example:
+                'Secret wrong': 提供了错误的secret密码
+        '403':
+          description: Forbidden
+          content:
+            text/plain:
+              example:
+                'App not enabled': 该app已经被禁用
+        '404':
+          description: Not Found
+          content:
+            text/plain:
+              example:
+                'No this app': 指定的app并不存在
+                'No this token': 要验证的token并不存在，也就是不可用
+components:
+  schemas:
+    TokenCreateBody:
+      type: object
+      required: [username, password]
+      description: |
+        token认证需要用户名和密码。除此之外，还可以设置token的有效时长。
+        * 如果不设置任何与时长有关的参数，那么持续时长将是系统的默认时长；
+        * 如果将`effective_unlimit`设置为`true`，那么将使用系统规定的能使用的最长时长，如果最长时长是无限，那么可以设置无限长的token；
+        * 如果设置`effective`参数，那么将请求这个长度的持续时长，但如果这个时长超过了最大时长，还是会被设定为最大时长。
+      properties:
+        username:
+          type: string
+          description: 用户名，只能由大小写字母、数字组成。
+        password:
+          type: string
+          description: 密码
+        effective:
+          type: number
+          description: 申请的token有效时长，单位毫秒。
+        effective_unlimit:
+          type: boolean
+          description: 请求无限长度的token时长。
+          default: false
+    TokenUpdateBody:
+      type: object
+      properties:
+        effective:
+          type: number
+          description: token的有效时长
+    TokenResBody:
+      type: object
+      properties:
+        key:
+          type: string
+          description: token
+        user_id:
+          type: integer
+          description: 用户的id
+        expire_time:
+          type: string
+          format: datetime
+          description: token过期的时间。`null`表示不会过期。
+        create_time:
+          type: string
+          format: datetime
+          description: token创建的时间
+        update_time:
+          type: string
+          format: datetime
+          description: token上次更新的时间
+    RegisterReqBody:
+      type: object
+      required: [username, password, name]
+      description: |
+        注册新用户需要提供几类基本信息。此外，系统控制着注册途径的开放。有三类状态：
+        * 开放注册：允许自由注册。
+        * 仅允许注册码注册：注册必须消耗正确的注册码，否则不允许注册。
+        * 关闭注册：任何人都不允许注册，相当于关闭此API。
+      properties:
+        username:
+          type: string
+          description: 用户名，不允许重复
+        password:
+          type: string
+          description: 密码
+        name:
+          type: string
+          description: 用户显示的名称
+        code:
+          type: string
+          description: 注册码
+    UserUpdateBody:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: 用户显示名
+    UserResBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: user id
+        username:
+          type: string
+          description: 用户名
+        name:
+          type: string
+          description: 显示名
+        cover:
+          type: string
+          description: 用户头像文件的文件名，可能为`null`。
+        is_staff:
+          type: boolean
+          description: 是否为系统管理员
+        last_login:
+          type: string
+          format: datetime
+          description: 上次登录时间。如果为`null`表示用户还没有登录过。
+        last_login_ip:
+          type: string
+          description: 上次登录的IP。如果为`null`表示用户还没有登录过，或者识别不了IP。
+        create_time:
+          type: string
+          format: datetime
+          description: 用户创建的时间
+        create_path:
+          type: string
+          enum: [System, Admin, Code, Public]
+          description: |
+            用户创建的途径。
+            * System: 用户由系统创建。只有初始化系统时创建的初始用户会通过此途径创建。
+            * Admin: 用户由系统管理员在后台创建。
+            * Code: 用户使用注册码自行注册。
+            * Public: 用户通过开放注册自行注册。
+    PasswordUpdateBody:
+      type: object
+      required: [old_password, new_password]
+      properties:
+        old_password:
+          type: string
+          description: 旧密码
+        new_password:
+          type: string
+          description: 新密码
+    AppResBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: app id
+        name:
+          type: string
+          description: app名称
+        description:
+          type: string
+          description: app简介
+        create_time:
+          type: string
+          format: datetime
+          description: app创建时间
+        update_time:
+          type: string
+          format: datetime
+          description: app上次修改时间
+    AppUseResBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: use id
+        app:
+          $ref: '#/components/schemas/AppResBody'
+        public_app:
+          type: boolean
+          description: 该app是否是公有app。公有app能够在app列表找到。
+        last_use:
+          type: string
+          format: datetime
+          description: 上次使用该app的时间。
+        create_time:
+          type: string
+          format: datetime
+          description: 用户初次激活app的时间，也就是使用记录创建的时间。
+    SettingBody:
+      type: object
+      required: [register_mode, effective_max, effective_default]
+      properties:
+        register_mode:
+          type: string
+          enum: ['Open', 'Close', 'Code']
+          description: |
+            注册模式。
+            * Open: 开放注册。
+            * Code: 仅允许使用注册码注册。
+            * Close: 关闭注册。
+        effective_max:
+          type: number
+          description: 允许的最长token时间。可以为`null`，表示无限长度。
+        effective_default:
+          type: number
+          description: 用户不主动设置token时间时，默认的token持续时间。不能为null，系统不允许默认拥有无限长度的持续时间。
+    CodeCreateBody:
+      type: object
+      properties:
+        deadline:
+          type: string
+          format: datetime
+          description: 注册码过期时间
+    CodeUpdateBody:
+      type: object
+      properties:
+        deadline:
+          type: string
+          format: datetime
+          description: 注册码过期时间
+        enable:
+          type: boolean
+          enum: [false]
+          description: 将此值设为`false`，将禁用此注册码
+    CodeResBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: code id
+        code:
+          type: string
+          description: 注册码，由系统生成且全局唯一。
+        enable:
+          type: boolean
+          description: 是否可用
+        deadline:
+          type: string
+          format: datetime
+          description: 过期时间。超过此时间，注册码就会失效。
+        used_time:
+          type: string
+          format: datetime
+          description: 如果注册码已被使用，记录使用时间。
+        used_user:
+          type: string
+          description: 如果注册码已被使用，记录使用此注册码注册的用户名。
+        create_time:
+          type: string
+          format: datetime
+          description: 注册码被创建的时间。
+    AdminUserCreateBody:
+      type: object
+      required: [username, password, name, is_staff]
+      properties:
+        username:
+          type: string
+          description: 用户名，不允许重复
+        password:
+          type: string
+          description: 密码
+        name:
+          type: string
+          description: 用户显示的名称
+        is_staff:
+          type: boolean
+          description: 是否是管理员用户
+    AdminUserUpdateBody:
+      type: object
+      properties:
+        enable:
+          type: boolean
+          description: 该用户是否可用
+    AdminUserResBody:
+      allOf:
+        - $ref: '#/components/schemas/UserResBody'
+        - type: object
+          properties:
+            enable:
+              type: boolean
+              description: 用户是否可用
+    AdminPasswordUpdateBody:
+      type: object
+      required: [new_password]
+      properties:
+        new_password:
+          type: string
+          description: 新密码
+    AdminAppCreateBody:
+      type: object
+      required: [unique_name, name, description, public]
+      properties:
+        unique_name:
+          type: string
+          description: app的唯一标识名，只能使用大小写字母和数字。
+        name:
+          type: string
+          description: app的显示名
+        description:
+          type: string
+          description: 描述
+        public:
+          type: boolean
+          description: 是否是公共可见的app。公共可见的app能够出现在用户查询的app列表里。非可见的app不会出现在列表，但是还是能够通过其他途径被用户使用。
+    AdminAppUpdateBody:
+      type: object
+      required: [name, description, public, enable]
+      properties:
+        name:
+          type: string
+          description: app的显示名
+        description:
+          type: string
+          description: 描述
+        public:
+          type: boolean
+          description: 是否是公共可见的app。公共可见的app能够出现在用户查询的app列表里。非可见的app不会出现在列表，但是还是能够通过其他途径被用户使用。
+        enable:
+          type: boolean
+          description: 可用。不可用的app将在用户列表不可见，且不能通过app接口调用。
+    AdminAppResBody:
+      allOf:
+        - $ref: '#/components/schemas/AppResBody'
+        - type: object
+          properties:
+            unique_name:
+              type: string
+              description: app的唯一标识名
+            public:
+              type: boolean
+              description: 公有app，会显示在普通用户的app列表里。
+            enable:
+              type: boolean
+              description: 可用。不可用的app将在用户列表不可见，且不能通过app接口调用。
+    AdminAppSecretResBody:
+      type: object
+      properties:
+        secret:
+          type: string
+          description: app认证的密码
+    AdminUse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: use id
+        last_use:
+          type: string
+          format: datetime
+          description: 用户上次使用的时间。
+        create_time:
+          type: string
+          format: datetime
+          description: 使用记录创建的时间，也就是初次激活的时间。
+        update_time:
+          type: string
+          format: datetime
+          description: 使用记录更新的时间，也就是附加信息更新的时间。
+    AdminUseAppResBody:
+      allOf:
+        - $ref: '#/components/schemas/AdminUse'
+        - type: object
+          properties:
+            app:
+              $ref: '#/components/schemas/AdminUserResBody'
+    AdminUseUserResBody:
+      allOf:
+        - $ref: '#/components/schemas/AdminUse'
+        - type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/AdminAppResBody'
+    AdminUseResBody:
+      allOf:
+        - $ref: '#/components/schemas/AdminUse'
+        - type: object
+          properties:
+            app_id:
+              type: integer
+              description: app id
+            user_id:
+              type: integer
+              description: user id
+    InterfaceVerifyReqBody:
+      type: object
+      description: |
+        * `app_id`, `app_unique_name`至少应存在一个。
+        * `token`, `user_id`, `username`至少应存在一个。
+      required: [secret]
+      properties:
+        secret:
+          type: string
+          description: app必须提供此密码以验证身份
+        app_id:
+          type: integer
+          description: app id
+        app_unique_name:
+          type: string
+          description: app唯一标识名
+        token:
+          type: string
+          description: 要验证的用户token
+        user_id:
+          type: integer
+          description: 要验证的用户user id
+        username:
+          type: string
+          description: 要验证的用户username
+    InterfaceVerifyResBody:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          description: user id
+        username:
+          type: string
+          description: 用户名
+        is_staff:
+          type: boolean
+          description: 用户是否是BasicService中的系统管理员。
+        info:
+          type: string
+          description: app给用户的附加信息，初次使用的用户默认是`null`。
+    InterfaceInfoReqBody:
+      type: object
+      description: |
+        * `app_id`, `app_unique_name`至少应存在一个。
+      required: [secret, user_id, info]
+      properties:
+        app_id:
+          type: integer
+          description: app id
+        app_unique_name:
+          type: string
+          description: app唯一标识名
+        secret:
+          type: string
+          description: app必须提供此密码以验证身份
+        user_id:
+          type: integer
+          description: user id
+        info:
+          type: string
+          description: app给用户的附加信息。
