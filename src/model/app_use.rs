@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Serialize};
 use chrono::prelude::{DateTime, Utc};
 use super::app::{ViewApp, ViewManageApp};
 use super::user::ViewManageUser;
@@ -17,7 +17,6 @@ pub struct AppUse {
 
 #[derive(Serialize)]
 pub struct ViewAppUse {
-    pub id: i32,
     pub last_use: Option<DateTime<Utc>>,
     pub create_time: DateTime<Utc>,
     pub app: ViewApp,
@@ -26,7 +25,6 @@ pub struct ViewAppUse {
 
 #[derive(Serialize)]
 pub struct ViewUseOfUser {
-    pub id: i32,
     pub last_use: Option<DateTime<Utc>>,
     pub create_time: DateTime<Utc>,
     pub update_time: DateTime<Utc>,
@@ -35,7 +33,6 @@ pub struct ViewUseOfUser {
 
 #[derive(Serialize)]
 pub struct ViewUseOfApp {
-    pub id: i32,
     pub last_use: Option<DateTime<Utc>>,
     pub create_time: DateTime<Utc>,
     pub update_time: DateTime<Utc>,
@@ -44,40 +41,9 @@ pub struct ViewUseOfApp {
 
 #[derive(Serialize)]
 pub struct ViewUse {
-    pub id: i32,
     pub last_use: Option<DateTime<Utc>>,
     pub create_time: DateTime<Utc>,
     pub update_time: DateTime<Utc>,
-    pub user_id: i32,
-    pub app_id: i32
-}
-
-#[derive(Deserialize)]
-pub struct AppVerifyRequest {
-    pub app_id: Option<i32>,                //表明使用者app
-    pub app_unique_name: Option<String>,    //表明使用者app，这两个二选一
-    pub secret: String,     //验证身份的密码
-
-    pub token: Option<String>,       //要查阅的token
-    pub user_id: Option<i32>,        //或者用user id
-    pub username: Option<String>     //或者用username
-}
-
-#[derive(Serialize)]
-pub struct AppVerifyResponse {
-    pub user_id: i32,
     pub username: String,
-
-    pub is_staff: bool,         //该用户是中央系统的系统管理员
-    pub info: Option<String>    //该用户被app附带的附加信息
-}
-
-#[derive(Deserialize)]
-pub struct InfoUpdateRequest {
-    pub app_id: Option<i32>,                //表明使用者app
-    pub app_unique_name: Option<String>,    //表明使用者app，这两个二选一
-    pub secret: String,     //验证身份的密码
-
-    pub user_id: i32,
-    pub info: Option<String>
+    pub app_id: String
 }

@@ -22,11 +22,10 @@ pub fn user_exists(t: &Transaction, username: &String) -> Result<bool, Error> {
 }
 
 pub fn user_get(t: &Transaction, user_id: i32) -> Result<Option<ViewUser>, Error> {
-    match t.query("SELECT id, username, name, cover, is_staff, last_login, last_login_ip, create_time, create_path FROM service_user 
+    match t.query("SELECT username, name, cover, is_staff, last_login, last_login_ip, create_time, create_path FROM service_user
         WHERE NOT deleted AND enable AND id = $1 LIMIT 1", &[&user_id]) {
             Ok(rows) => if rows.len() > 0 {
                 Ok(Some(ViewUser {
-                    id: rows.get(0).get("id"),
                     username: rows.get(0).get("username"),
                     name: rows.get(0).get("name"),
                     cover: rows.get(0).get("cover"),
@@ -39,6 +38,30 @@ pub fn user_get(t: &Transaction, user_id: i32) -> Result<Option<ViewUser>, Error
                         CreatePath::from(&create_path).unwrap()
                     }
                 }))
+        }else{
+            Ok(None)
+        },
+        Err(e) => Err(e)
+    }
+}
+
+pub fn user_get_by_username(t: &Transaction, username: &String) -> Result<Option<ViewUser>, Error> {
+    match t.query("SELECT username, name, cover, is_staff, last_login, last_login_ip, create_time, create_path FROM service_user
+        WHERE NOT deleted AND enable AND username = $1 LIMIT 1", &[username]) {
+        Ok(rows) => if rows.len() > 0 {
+            Ok(Some(ViewUser {
+                username: rows.get(0).get("username"),
+                name: rows.get(0).get("name"),
+                cover: rows.get(0).get("cover"),
+                is_staff: rows.get(0).get("is_staff"),
+                last_login: rows.get(0).get("last_login"),
+                last_login_ip: rows.get(0).get("last_login_ip"),
+                create_time: rows.get(0).get("create_time"),
+                create_path: {
+                    let create_path: String = rows.get(0).get("create_path");
+                    CreatePath::from(&create_path).unwrap()
+                }
+            }))
         }else{
             Ok(None)
         },
@@ -96,6 +119,18 @@ pub fn user_update_last_login(t: &Transaction, user_id: i32, ip: &Option<String>
             &[&now, ip, &user_id, &(now - Duration::minutes(1))]) {
         Err(e) => Err(e),
         Ok(size) => Ok(size > 0)
+    }
+}
+
+pub fn get_id_by_username(t: &Transaction, username: &String) -> Result<Option<i32>, Error> {
+    match t.query("SELECT id FROM service_user WHERE username = $1 LIMIT 1", &[username]) {
+        Err(e) => Err(e),
+        Ok(rows) => if rows.len() > 0 {
+            let id: i32 = rows.get(0).get("id");
+            Ok(Some(id))
+        }else{
+            Ok(None)
+        }
     }
 }
 

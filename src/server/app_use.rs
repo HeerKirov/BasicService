@@ -17,13 +17,14 @@ fn list(req: HttpRequest) -> HttpResponse {
     })
 }
 
-fn retrieve(use_id: web::Path<i32>, req: HttpRequest) -> HttpResponse {
+fn retrieve(app_id: web::Path<String>, req: HttpRequest) -> HttpResponse {
+    let app_id = &app_id.to_string();
     transaction_res(|trans| {
         let user_id = match verify_login(trans, &req) {
             Err(e) => return e,
             Ok(ok) => ok
         };
-        match use_get(trans, user_id, *use_id) {
+        match use_get(trans, user_id, &app_id) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
             Ok(None) => HttpResponse::NotFound().finish(),
             Ok(Some(ok)) => HttpResponse::Ok().json(ok)
@@ -33,5 +34,5 @@ fn retrieve(use_id: web::Path<i32>, req: HttpRequest) -> HttpResponse {
 
 pub fn register_view(scope: Scope) -> Scope {
     scope.route("/app-use/", web::get().to(list))
-        .route("/app-use/{use_id}/", web::get().to(retrieve))
+        .route("/app-use/{app_id}/", web::get().to(retrieve))
 }

@@ -13,7 +13,7 @@ fn create(body: web::Json<CreateToken>, req: HttpRequest) -> HttpResponse {
         match user_authenticate(trans, &body.username, &body.password) {
             Ok(user_id) => {
                 let setting = setting_get(trans).unwrap();
-                match token_create(trans, user_id, calculate_effective(body.effective, body.effective_unlimit, setting.effective_max, setting.effective_default)) {
+                match token_create(trans, user_id, &body.username, calculate_effective(body.effective, body.effective_unlimit, setting.effective_max, setting.effective_default)) {
                     Ok(token) => {
                         if let Err(e) = user_update_last_login(trans, user_id, &get_request_ip(&req)) { error!("update user last login message failed. {}", e) }
                         HttpResponse::Created().json(token)

@@ -6,6 +6,7 @@ pub struct App {
     pub unique_name: String,    //app的唯一标示名
     pub name: String,           //名称
     pub description: String,    //描述
+    pub url: String,            //URL
     pub secret: String,         //子系统登录本系统时，用来验证的密码
 
     pub public: bool,           //该app是公开项目，出现在公有应用列表。相应地，标记为false的app存在，但不开放给所有用户。
@@ -18,9 +19,10 @@ pub struct App {
 
 #[derive(Serialize)]
 pub struct ViewApp {
-    pub id: i32,
+    pub app_id: String,
     pub name: String,
     pub description: String,
+    pub url: serde_json::Value,
 
     pub create_time: DateTime<Utc>,
     pub update_time: DateTime<Utc>
@@ -28,10 +30,10 @@ pub struct ViewApp {
 
 #[derive(Serialize)]
 pub struct ViewManageApp {
-    pub id: i32,
-    pub unique_name: String,
+    pub app_id: String,
     pub name: String,
     pub description: String,
+    pub url: serde_json::Value,
 
     pub public: bool,
     pub enable: bool,
@@ -47,9 +49,10 @@ pub struct ViewManageSecret {
 
 #[derive(Deserialize)]
 pub struct CreateApp {
-    pub unique_name: String,
+    pub app_id: String,
     pub name: String,
     pub description: String,
+    pub url: serde_json::Value,
     pub public: bool
 }
 
@@ -57,6 +60,7 @@ pub struct CreateApp {
 pub struct UpdateApp {
     pub name: String,
     pub description: String,
+    pub url: serde_json::Value,
     pub public: bool,
     pub enable: bool
 }

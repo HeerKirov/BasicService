@@ -14,10 +14,11 @@ fn list(req: HttpRequest) -> HttpResponse {
     })
 }
 
-fn retrieve(app_id: web::Path<i32>, req: HttpRequest) -> HttpResponse {
+fn retrieve(app_id: web::Path<String>, req: HttpRequest) -> HttpResponse {
+    let app_id = &app_id.to_string();
     transaction_res(|trans| {
         if let Err(e) = verify_login(trans, &req) { return e }
-        match app_get(trans, *app_id) {
+        match app_get(trans, &app_id) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
             Ok(None) => HttpResponse::NotFound().finish(),
             Ok(Some(ok)) => HttpResponse::Ok().json(ok)

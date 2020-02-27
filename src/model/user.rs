@@ -38,7 +38,6 @@ pub struct RegisterUser {
 
 #[derive(Serialize)]
 pub struct ViewUser {
-    pub id: i32,
     pub username: String,
     pub name: String,
     pub cover: Option<String>,
@@ -69,7 +68,6 @@ pub struct UpdatePassword {
 
 #[derive(Serialize)]
 pub struct ViewManageUser {
-    pub id: i32,
     pub username: String,
     pub name: String,
     pub cover: Option<String>,

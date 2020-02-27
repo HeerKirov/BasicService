@@ -1,9 +1,8 @@
 # BasicService
 将用户相关的服务抽离出来，为其他需要用户系统和用户认证的应用程序提供登录服务。
-> Coding ...
 
 ## Technology
-* Rust (>=1.37.0)
+* Rust (>=1.41.0)
 * actix-web
 * r2d2
 * postgres

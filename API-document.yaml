@@ -3,10 +3,10 @@ servers:
   - description: 本地服务器
     url: 'http://localhost:8000'
   - description: 线上服务器
-    url: 'https://www.heerkirov.com/api'
+    url: 'https://www.heerkirov.com'
 info:
   title: Basic Service REST API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     提供基础的用户认证和管理服务。
     ### 使用说明
@@ -18,14 +18,28 @@ info:
     系统只提供Bearer Token认证。在发送请求时，编写请求头`Authorization`: `Bearer {token}`。token使用API`/api/token/`获得。
     用户认证成功时，会继续后续的业务请求。
     ### 公共错误信息
-    下面是几种几乎所有API都会存在的错误犯回信息，在这里统一列出。
+    下面是几种几乎所有API都会存在的错误返回信息，在这里统一列出。
     1. 401 Unauthorized
       * 没有获得Authorization请求头，请求头无法被正确解析，或请求头不是合法的Bearer格式
       * token不存在，已经过期，或已被销毁
-    2. 403 Forbidden - 不止需要登录，还需要更高的权限，比如管理员权限
+    2. 403 Forbidden
+      * 当前的权限等级不足
+      * 不止需要登录，还需要更高的权限，比如管理员权限
     3. 400 Bad Request
-      * Request Body的内容无法被解析为json
+      * Request Body的内容不是合法的json数据
       * Body的内容无法满足API描述的需要
+      * 只有无法被前端验证的错误才会在文档中列出。能够在前端检查中指出的错误可能有错误代码，但不会列出。
+    ### App接入指南
+    Basic Service向注册在案的App提供token接入功能。这分两个部分。
+    #### 配置App信息
+    1. 调用[/api/admin/app/](#/Admin%20App/post_api_admin_app_)API创建一个新的App。
+    2. 调用[/api/admin/app/{app-id}/secret/](#/Admin%20App/get_api_admin_app__app_id__secret_)API，取得此App的密钥。
+    3. 将密钥配置在App后端系统中。
+    #### 使用Token认证功能
+    1. App的用户使用[/api/token/](#/Token/post_api_token_)API来申请token，而无需在App的后端编写token申请相关的API。
+    2. 后端的其他业务端点按照普通的token认证端点来编写。
+    3. 在每个需要验证用户身份的逻辑点，后端调用[/api/interface/verify/](#/Interface/post_api_interface_verify_)API来验证token是否正确。
+    4. 需要为每个用户保存一些不太复杂的附加信息时，可以使用[/api/interface/info/get/](#/Interface/post_api_interface_info_get_)和[/api/interface/info/post/](#/Interface/post_api_interface_info_post_)API来存储和查看附加信息，以及此用户的其他关键信息。
 tags:
   - name: Token
     description: 用户Token
@@ -190,7 +204,14 @@ paths:
       tags: [User]
       summary: "上传用户头像"
       requestBody:
-        content: {}
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: object
+                  description: 要上传的文件流
       responses:
         '200':
           description: Ok
@@ -254,12 +275,12 @@ paths:
               schema:
                 type: array
                 items: {$ref: '#/components/schemas/AppUseResBody'}
-  /api/app-use/{use-id}/:
+  /api/app-use/{app-id}/:
     get:
       tags: [App]
       summary: "获得App及使用关系的详情"
       parameters:
-        - name: use-id
+        - name: app-id
           required: true
           in: path
           schema: {type: string}
@@ -394,12 +415,12 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/AdminUserResBody'}
-  /api/admin/user/{user-id}/:
+  /api/admin/user/{username}/:
     get:
       tags: ['Admin User']
       summary: "获得用户详情"
       parameters:
-        - name: user-id
+        - name: username
           required: true
           in: path
           schema: {type: string}
@@ -415,7 +436,7 @@ paths:
       tags: ['Admin User']
       summary: "变更用户状态"
       parameters:
-        - name: user-id
+        - name: username
           required: true
           in: path
           schema: {type: string}
@@ -435,7 +456,7 @@ paths:
       tags: ['Admin User']
       summary: "删除用户"
       parameters:
-        - name: user-id
+        - name: username
           required: true
           in: path
           schema: {type: string}
@@ -444,12 +465,12 @@ paths:
           description: No Content
         '404':
           description: Not Found
-  /api/admin/user/{user-id}/password/:
+  /api/admin/user/{username}/password/:
     put:
       tags: ['Admin User']
       summary: "修改用户密码"
       parameters:
-        - name: user-id
+        - name: username
           required: true
           in: path
           schema: {type: string}
@@ -487,6 +508,12 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/AdminAppResBody'}
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              example:
+                'App id exist': app id已经存在
   /api/admin/app/{app-id}/:
     get:
       tags: ['Admin App']
@@ -570,12 +597,12 @@ paths:
               schema: {$ref: '#/components/schemas/AdminAppSecretResBody'}
         '404':
           description: Not Found
-  /api/admin/user/{user-id}/use/:
+  /api/admin/user/{username}/use-app/:
     get:
       tags: ['Admin App Use']
       summary: "获得用户所有使用的App的列表"
       parameters:
-        - name: user-id
+        - name: username
           required: true
           in: path
           schema: {type: string}
@@ -584,10 +611,10 @@ paths:
           description: Ok
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/AdminUseUserResBody'}
+              schema: {$ref: '#/components/schemas/AdminUseOfUserResBody'}
         '404':
           description: Not Found
-  /api/admin/app/{app-id}/use/:
+  /api/admin/app/{app-id}/use-user/:
     get:
       tags: ['Admin App Use']
       summary: "获得App的所有用户的列表"
@@ -601,13 +628,17 @@ paths:
           description: Ok
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/AdminUseAppResBody'}
-  /api/admin/app-use/{use-id}/:
+              schema: {$ref: '#/components/schemas/AdminUseOfAppResBody'}
+  /api/admin/app-use/{username}/{app-id}/:
     get:
       tags: ['Admin App Use']
       summary: "获得使用记录详情"
       parameters:
-        - name: use-id
+        - name: username
+          required: true
+          in: path
+          schema: {type: string}
+        - name: app-id
           required: true
           in: path
           schema: {type: string}
@@ -633,13 +664,6 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/InterfaceVerifyResBody'}
-        '400':
-          description: Bad Request
-          content:
-            text/plain:
-              example:
-                'Neither id nor name': app_id和app_unique_name都没有出现
-                'Neither token nor user_id nor username': token, user_id, username都没有出现
         '401':
           description: Unauthorization
           content:
@@ -657,25 +681,53 @@ paths:
           content:
             text/plain:
               example:
-                'No this app': 指定的app并不存在
-                'No this token': 要验证的token并不存在，也就是不可用
-  /api/interface/info/:
+                'Token wrong': Token验证失败，相关内容不存在
+  /api/interface/info/get/:
+    post:
+      tags: [Interface]
+      summary: "[应用程序]查询用户的附加信息"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/InterfaceGetInfoBody'}
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/InterfaceInfoResBody'}
+        '401':
+          description: Unauthorization
+          content:
+            text/plain:
+              example:
+                'Secret wrong': 提供了错误的secret密码
+        '403':
+          description: Forbidden
+          content:
+            text/plain:
+              example:
+                'App not enabled': 该app已经被禁用
+        '404':
+          description: Not Found
+          content:
+            text/plain:
+              example:
+                'User info not found': 用户不存在或要查找的用户信息不存在
+  /api/interface/info/update/:
     post:
       tags: [Interface]
       summary: "[应用程序]变更用户的附加信息"
       requestBody:
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/InterfaceInfoReqBody'}
+            schema: {$ref: '#/components/schemas/InterfaceUpdateInfoBody'}
       responses:
         '200':
           description: Ok
-        '400':
-          description: Bad Request
           content:
-            text/plain:
-              example:
-                'Neither id nor name': app_id和app_unique_name都没有出现
+            application/json:
+              schema: {$ref: '#/components/schemas/InterfaceInfoResBody'}
         '401':
           description: Unauthorization
           content:
@@ -693,8 +745,7 @@ paths:
           content:
             text/plain:
               example:
-                'No this app': 指定的app并不存在
-                'No this token': 要验证的token并不存在，也就是不可用
+                'User info not found': 用户不存在或要查找的用户信息不存在
 components:
   schemas:
     TokenCreateBody:
@@ -708,7 +759,7 @@ components:
       properties:
         username:
           type: string
-          description: 用户名，只能由大小写字母、数字组成。
+          description: 用户名。
         password:
           type: string
           description: 密码
@@ -731,9 +782,9 @@ components:
         key:
           type: string
           description: token
-        user_id:
-          type: integer
-          description: 用户的id
+        username:
+          type: string
+          description: 用户名
         expire_time:
           type: string
           format: datetime
@@ -757,7 +808,7 @@ components:
       properties:
         username:
           type: string
-          description: 用户名，不允许重复
+          description: 用户名，不允许重复，符合`[A-Za-z0-9_-]+`字符集。
         password:
           type: string
           description: 密码
@@ -777,9 +828,6 @@ components:
     UserResBody:
       type: object
       properties:
-        id:
-          type: integer
-          description: user id
         username:
           type: string
           description: 用户名
@@ -825,8 +873,8 @@ components:
     AppResBody:
       type: object
       properties:
-        id:
-          type: integer
+        app_id:
+          type: string
           description: app id
         name:
           type: string
@@ -834,6 +882,9 @@ components:
         description:
           type: string
           description: app简介
+        url:
+          type: object
+          description: app相关URL
         create_time:
           type: string
           format: datetime
@@ -845,9 +896,6 @@ components:
     AppUseResBody:
       type: object
       properties:
-        id:
-          type: integer
-          description: use id
         app:
           $ref: '#/components/schemas/AppResBody'
         public_app:
@@ -930,7 +978,7 @@ components:
       properties:
         username:
           type: string
-          description: 用户名，不允许重复
+          description: 用户名，不允许重复，符合`[A-Za-z0-9_-]+`字符集。
         password:
           type: string
           description: 密码
@@ -942,6 +990,7 @@ components:
           description: 是否是管理员用户
     AdminUserUpdateBody:
       type: object
+      required: [enable]
       properties:
         enable:
           type: boolean
@@ -963,23 +1012,26 @@ components:
           description: 新密码
     AdminAppCreateBody:
       type: object
-      required: [unique_name, name, description, public]
+      required: [app_id, name, description, url, public]
       properties:
-        unique_name:
+        app_id:
           type: string
-          description: app的唯一标识名，只能使用大小写字母和数字。
+          description: app的唯一标识名，符合`[A-Za-z0-9_-]+`字符集。
         name:
           type: string
           description: app的显示名
         description:
           type: string
           description: 描述
+        url:
+          type: object
+          description: app相关URL
         public:
           type: boolean
           description: 是否是公共可见的app。公共可见的app能够出现在用户查询的app列表里。非可见的app不会出现在列表，但是还是能够通过其他途径被用户使用。
     AdminAppUpdateBody:
       type: object
-      required: [name, description, public, enable]
+      required: [name, description, url, public, enable]
       properties:
         name:
           type: string
@@ -987,6 +1039,9 @@ components:
         description:
           type: string
           description: 描述
+        url:
+          type: object
+          description: app相关URL
         public:
           type: boolean
           description: 是否是公共可见的app。公共可见的app能够出现在用户查询的app列表里。非可见的app不会出现在列表，但是还是能够通过其他途径被用户使用。
@@ -998,9 +1053,6 @@ components:
         - $ref: '#/components/schemas/AppResBody'
         - type: object
           properties:
-            unique_name:
-              type: string
-              description: app的唯一标识名
             public:
               type: boolean
               description: 公有app，会显示在普通用户的app列表里。
@@ -1016,9 +1068,6 @@ components:
     AdminUse:
       type: object
       properties:
-        id:
-          type: integer
-          description: use id
         last_use:
           type: string
           format: datetime
@@ -1031,14 +1080,14 @@ components:
           type: string
           format: datetime
           description: 使用记录更新的时间，也就是附加信息更新的时间。
-    AdminUseAppResBody:
+    AdminUseOfUserResBody:
       allOf:
         - $ref: '#/components/schemas/AdminUse'
         - type: object
           properties:
             app:
               $ref: '#/components/schemas/AdminUserResBody'
-    AdminUseUserResBody:
+    AdminUseOfAppResBody:
       allOf:
         - $ref: '#/components/schemas/AdminUse'
         - type: object
@@ -1050,70 +1099,59 @@ components:
         - $ref: '#/components/schemas/AdminUse'
         - type: object
           properties:
+            username:
+              type: string
+              description: 此使用记录关联用户的用户名
             app_id:
-              type: integer
-              description: app id
-            user_id:
-              type: integer
-              description: user id
+              type: string
+              description: 此使用记录关联App的app id
     InterfaceVerifyReqBody:
       type: object
-      description: |
-        * `app_id`, `app_unique_name`至少应存在一个。
-        * `token`, `user_id`, `username`至少应存在一个。
-      required: [secret]
+      required: [secret, token]
       properties:
         secret:
           type: string
-          description: app必须提供此密码以验证身份
-        app_id:
-          type: integer
-          description: app id
-        app_unique_name:
-          type: string
-          description: app唯一标识名
+          description: 提供此密码以验证App身份
         token:
           type: string
           description: 要验证的用户token
-        user_id:
-          type: integer
-          description: 要验证的用户user id
-        username:
-          type: string
-          description: 要验证的用户username
     InterfaceVerifyResBody:
       type: object
       properties:
-        user_id:
-          type: integer
-          description: user id
         username:
           type: string
           description: 用户名
-        is_staff:
-          type: boolean
-          description: 用户是否是BasicService中的系统管理员。
-        info:
-          type: string
-          description: app给用户的附加信息，初次使用的用户默认是`null`。
-    InterfaceInfoReqBody:
+    InterfaceGetInfoBody:
       type: object
-      description: |
-        * `app_id`, `app_unique_name`至少应存在一个。
-      required: [secret, user_id, info]
+      required: [secret, username]
       properties:
-        app_id:
-          type: integer
-          description: app id
-        app_unique_name:
-          type: string
-          description: app唯一标识名
         secret:
           type: string
           description: app必须提供此密码以验证身份
-        user_id:
-          type: integer
-          description: user id
+        username:
+          type: string
+          description: 用户名
+    InterfaceUpdateInfoBody:
+      allOf:
+        - $ref: '#/components/schemas/InterfaceGetInfoBody'
+        - type: object
+          required: [info]
+          properties:
+            info:
+              type: string
+              description: 要存储的附加信息
+    InterfaceInfoResBody:
+      type: object
+      properties:
+        username:
+          type: string
+          description: 用户名
+        name:
+          type: string
+          description: 用户显示名
+        is_staff:
+          type: boolean
+          description: 用户在认证系统中是否是管理员身份
         info:
           type: string
-          description: app给用户的附加信息。
+          description: App给此用户添加的附加信息

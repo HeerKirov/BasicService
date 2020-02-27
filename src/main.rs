@@ -11,7 +11,7 @@ fn main() {
         .side(|_| env_logger::init())
         .side(|p| set_filepath(p.param("config", "config.properties".to_string())))
         .execute(|command, _| match command {
-            "runserver" => run_server(),
+            "runserver" => run_server().unwrap(),
             "initialize-datasource" => initialize_datasource(),
             "clean-expired-token" => clean_expired_token(),
             _ => println!("no such command \"{}\"", command)

@@ -39,7 +39,7 @@ pub fn initialize_datasource() {
             error!("Global setting create failed: {}", e);
         }
     });
-    
+
     info!("Done.")
 }
 

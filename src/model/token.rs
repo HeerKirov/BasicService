@@ -20,7 +20,7 @@ pub struct CreateToken {
 #[derive(Serialize, Deserialize)]
 pub struct RetrieveToken {
     pub key: String,
-    pub user_id: i32,
+    pub username: String,
 
     pub expire_time: Option<DateTime<Utc>>,
     pub create_time: DateTime<Utc>,

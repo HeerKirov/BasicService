@@ -19,7 +19,7 @@ use postgres::transaction::Transaction;
 use actix_web::middleware::Logger;
 use super::util::config::*;
 use super::service::token::token_get;
-use super::service::user::{user_update_last_login, user_get};
+use super::service::user::{user_update_last_login, user_get, get_id_by_username};
 
 fn register_views(scope: Scope) -> Scope {
     let mut s = scope;
@@ -37,18 +37,19 @@ fn register_views(scope: Scope) -> Scope {
     s
 }
 
-pub fn run_server() {
+#[actix_rt::main]
+pub async fn run_server() -> std::io::Result<()> {
     let config = get_config();
     let prefix = String::from(config.get(WEB_API_PREFIX));
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::new("[%a] \"%r\" %s - %Ts"))
-            .wrap(Cors::new().send_wildcard().max_age(3600))
+            .wrap(Cors::new().send_wildcard().max_age(3600).finish())
             .service(Files::new(config.get(STATIC_COVER_PREFIX), config.get(STATIC_COVER_DIRECTORY)).show_files_listing())
             .service(register_views(web::scope(&prefix)))
     })
     .bind(format!("0.0.0.0:{}", config.get(WEB_PORT))).expect(&format!("cannot bind to port {}", config.get(WEB_PORT)))
-    .run().unwrap();
+    .run().await
 }
 
 pub fn verify_login(trans: &Transaction, req: &HttpRequest) -> Result<i32, HttpResponse> {
@@ -71,17 +72,23 @@ fn verify_permission(trans: &Transaction, req: &HttpRequest, is_staff: bool) -> 
     let token_model = match token_get(trans, &token) { Ok(token_model) => token_model, Err(e) => return Err(HttpResponse::InternalServerError().body(e.description().to_string())) };
     //如果model是None表示不存在此token
     let model = if let Some(model) = token_model { model }else{ return Err(HttpResponse::Unauthorized().body("Authentication token is not exist.")) };
+    //提取user id
+    let user_id = match get_id_by_username(trans, &model.username) {
+        Ok(Some(id)) => id,
+        Ok(None) => return Err(HttpResponse::Unauthorized().body("User is not exist.")),
+        Err(e) => return Err(HttpResponse::InternalServerError().body(e.description().to_string()))
+    };
     //在需求是staff的情况下，继续验明user身份
     if is_staff {
-        let user_model = match user_get(trans, model.user_id) { Ok(user_model) => user_model, Err(e) => return Err(HttpResponse::InternalServerError().body(e.description().to_string())) };
+        let user_model = match user_get(trans, user_id) { Ok(user_model) => user_model, Err(e) => return Err(HttpResponse::InternalServerError().body(e.description().to_string())) };
         let user = if let Some(model) = user_model { model }else{ return Err(HttpResponse::Unauthorized().body("User is not exist.")) };
         if !user.is_staff {
             return Err(HttpResponse::Forbidden().body("Permission denied."));
         }
     }
     //尝试更新最后登录信息
-    if let Err(e) = user_update_last_login(trans, model.user_id, &get_request_ip(req)) { error!("update user last login message failed. {}", e) }
-    Ok(model.user_id)
+    if let Err(e) = user_update_last_login(trans, user_id, &get_request_ip(req)) { error!("update user last login message failed. {}", e) }
+    Ok(user_id)
 }
 
 pub fn get_request_ip(req: &HttpRequest) -> Option<String> {

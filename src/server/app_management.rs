@@ -1,10 +1,10 @@
 use std::error::Error;
 use actix_web::{web, Scope, HttpRequest, HttpResponse};
 use super::super::model::app::{CreateApp, UpdateApp, ViewManageSecret};
-use super::super::service::app_management::{app_list, app_create, app_get, app_get_by_unique_name, app_get_secret, app_update_secret, app_exists, app_update, app_delete};
+use super::super::service::app_management::{app_list, app_create, app_get_by_unique_name, app_get_secret, app_update_secret, app_exists, app_update, app_delete};
 use super::super::service::app_use_management::use_delete_by_app;
 use super::super::service::transaction_res;
-use super::super::util::check::validate_std_name;
+use super::super::util::check::{validate_std_name, validate_url_json};
 use super::verify_staff;
 
 fn list(req: HttpRequest) -> HttpResponse {
@@ -19,17 +19,20 @@ fn list(req: HttpRequest) -> HttpResponse {
 fn create(body: web::Json<CreateApp>, req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
-        if !validate_std_name(&body.unique_name) {
-            return HttpResponse::BadRequest().body("App unique name is invalid")
+        if !validate_std_name(&body.app_id) {
+            return HttpResponse::BadRequest().body("App id is invalid")
         }
-        match app_exists(trans, &body.unique_name) {
+        if !validate_url_json(&body.url) {
+            return HttpResponse::BadRequest().body("Url is invalid")
+        }
+        match app_exists(trans, &body.app_id) {
             Err(e) => return HttpResponse::InternalServerError().body(e.description().to_string()),
-            Ok(true) => return HttpResponse::BadRequest().body("App unique name exist"),
+            Ok(true) => return HttpResponse::BadRequest().body("App id exist"),
             _ => {}
         }
         match app_create(trans, &body) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
-            Ok(_) => match app_get_by_unique_name(trans, &body.unique_name) {
+            Ok(_) => match app_get_by_unique_name(trans, &body.app_id) {
                 Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
                 Ok(None) => HttpResponse::InternalServerError().body("App not found."),
                 Ok(Some(ok)) => HttpResponse::Created().json(ok)
@@ -37,23 +40,30 @@ fn create(body: web::Json<CreateApp>, req: HttpRequest) -> HttpResponse {
         }
     })
 }
-fn retrieve(app_id: web::Path<i32>, req: HttpRequest) -> HttpResponse {
+fn retrieve(app_id: web::Path<String>, req: HttpRequest) -> HttpResponse {
+    let app_id = &app_id.to_string();
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
-        match app_get(trans, *app_id) {
+        match app_get_by_unique_name(trans, &app_id) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
             Ok(None) => HttpResponse::NotFound().finish(),
             Ok(Some(ok)) => HttpResponse::Ok().json(ok)
         }
     })
 }
-fn update(app_id: web::Path<i32>, body: web::Json<UpdateApp>, req: HttpRequest) -> HttpResponse {
+fn update(app_id: web::Path<String>, body: web::Json<UpdateApp>, req: HttpRequest) -> HttpResponse {
+    let app_id = &app_id.to_string();
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
-        match app_update(trans, *app_id, &body) {
+
+        if !validate_url_json(&body.url) {
+            return HttpResponse::BadRequest().body("Url is invalid")
+        }
+
+        match app_update(trans, &app_id, &body) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
             Ok(false) => HttpResponse::NotFound().finish(),
-            Ok(true) => match app_get(trans, *app_id) {
+            Ok(true) => match app_get_by_unique_name(trans, &app_id) {
                 Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
                 Ok(None) => HttpResponse::InternalServerError().body("App not found"),
                 Ok(Some(ok)) => HttpResponse::Ok().json(ok)
@@ -61,36 +71,37 @@ fn update(app_id: web::Path<i32>, body: web::Json<UpdateApp>, req: HttpRequest) 
         }
     })
 }
-fn delete(app_id: web::Path<i32>, req: HttpRequest) -> HttpResponse {
+fn delete(app_id: web::Path<String>, req: HttpRequest) -> HttpResponse {
+    let app_id = &app_id.to_string();
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
-        if let Err(e) = use_delete_by_app(trans, *app_id) {
+        if let Err(e) = use_delete_by_app(trans, &app_id) {
             return HttpResponse::InternalServerError().body(e.description().to_string())
         }
-        match app_delete(trans, *app_id) {
+        match app_delete(trans, &app_id) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
             Ok(false) => HttpResponse::NotFound().finish(),
             Ok(true) => HttpResponse::NoContent().finish()
         }
     })
 }
-fn retrieve_secret(app_id: web::Path<i32>, req: HttpRequest) -> HttpResponse {
+fn retrieve_secret(app_id: web::Path<String>, req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
-        match app_get_secret(trans, *app_id) {
+        match app_get_secret(trans, &app_id) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
             Ok(None) => HttpResponse::NotFound().finish(),
-            Ok(Some(ok)) => HttpResponse::Ok().json(ViewManageSecret{ secret: ok})
+            Ok(Some(ok)) => HttpResponse::Ok().json(ViewManageSecret{secret: ok})
         }
     })
 }
-fn update_secret(app_id: web::Path<i32>, req: HttpRequest) -> HttpResponse {
+fn update_secret(app_id: web::Path<String>, req: HttpRequest) -> HttpResponse {
     transaction_res(|trans| {
         if let Err(e) = verify_staff(trans, &req) { return e }
-        match app_update_secret(trans, *app_id) {
+        match app_update_secret(trans, &app_id) {
             Err(e) => HttpResponse::InternalServerError().body(e.description().to_string()),
             Ok(None) => HttpResponse::NotFound().finish(),
-            Ok(Some(ok)) => HttpResponse::Ok().json(ViewManageSecret{ secret: ok})
+            Ok(Some(ok)) => HttpResponse::Ok().json(ViewManageSecret{secret: ok})
         }
     })
 }
